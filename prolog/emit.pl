@@ -4,7 +4,10 @@ regs(['%edi','%esi','%edx']).
 prms([],_).
 prms([P|Ps],[R|Rs]) :-  asm('\tmovl ~w,~w',[P,R]),
                         prms(Ps,Rs).
-code(movl(A,B)) :-      asm('\tmovl ~w,~w',[A,B]).
+code(movl(A,B)) :-      (re_match('^[%$]',A);re_match('^%',B)),!,
+                        asm('\tmovl ~w,~w',[A,B]).
+code(movl(A,B)) :-      asm('\tmovl ~w,%eax',[A]),
+                        asm('\tmovl %eax,~w',[B]).
 code(subq(A,B)) :-      asm('\tsubq ~w,~w',[A,B]).
 code(addl(A,B,C)) :-    asm('\tmovl ~w,%eax',[A]),
                         asm('\taddl ~w,%eax',[B]),

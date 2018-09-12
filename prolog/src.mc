@@ -1,5 +1,6 @@
 main()=[
-  printInt(add(100,20,3)),
+  a=4000,
+  printInt(a+add(300,20,1)),
   return(0)
 ].
 add(a,b,c)=[

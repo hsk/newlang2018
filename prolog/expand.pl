@@ -1,5 +1,5 @@
 :- module(expand,[expand/2]).
-:- use_module(genid).
+:- use_module(asm).
 
 regs(['%edi','%esi','%edx','%ecx','%r8d','%r9d']).
 set(L) :- nb_linkval(expand_codes,L).
@@ -10,12 +10,13 @@ code(add(A,B),R) :-       genid('.ex.',R),code(A,A1),code(B,B1),add(addl(A1,B1,R
 code(mov(A,R),R) :-       atom(A),!,add(movl(A,R)).
 code(mov(A,R),R) :-       integer(A),!,format(atom(D),'$~w',[A]),add(movl(D,R)).
 code(mov(A,R),R) :-       code(A,R1),add(movl(R1,R)).
-code(call(A,B),'%eax') :- maplist(code,B,Rs),add(call(A,Rs)).
+code(call(A,B),R) :-      genid('.ex.',R),maplist(code,B,Rs),add(call(A,Rs)),add(movl('%eax',R)).
 code(if(A,B,C),null) :-   get(L),set([]),maplist(code,B,_),get(Lb),
                           set([]),maplist(code,C,_),get(Lc),set(L),
                           code(A,Ra),add(ifeq(Ra,'$0',Lb,Lc)).
 code(ret(E),R) :-         code(E,R),add(ret(R)).
 code(R,R) :-              atom(R).
+code(I,R) :-              integer(I),format(atom(R),'$~w',I).
 code(E,_) :-              writeln(error:E),halt.
 
 argv([],_).
