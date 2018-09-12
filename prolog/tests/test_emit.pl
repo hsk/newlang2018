@@ -1,0 +1,15 @@
+:- use_module('../emit.pl').
+:- begin_tests(emit).
+  test(emit1) :-
+    % 1を出力するプログラム
+    emit('a.s', [
+      ('main',[
+        movl('$1', '%edi'),
+        call('printInt',[]),
+        ret('$0')
+      ])
+    ]),
+    shell('gcc -static -o a a.s lib/lib.c'),
+    shell('./a').
+:- end_tests(emit).
+:- run_tests,halt; halt(-1).
