@@ -16,10 +16,10 @@ code(bne(A,B,C),bne(A1,B,C))        :- adr(A,A1).
 code(br(A),br(A)).
 code(label(A),label(A)).
 code(if(A,C,D),if(A1,C1,D1))        :- adr(A,A1),adrs(C,C1),adrs(D,D1).
-
-func((N,Cs),(N,[subq(Size1,'%rsp')|Cs1])) :-
+bb((L,BB),(L,BB1)) :- maplist(code,BB,BB1).
+func((N,BBs),(N,[(N1,[subq(Size1,'%rsp')|Cs])|BBs1])) :-
                                     nb_setval(counter,0), nb_setval(m,[]),
-                                    maplist(code,Cs,Cs1),
+                                    maplist(bb,BBs,[(N1,Cs)|BBs1]),
                                     nb_getval(counter,Counter),
                                     Size is floor((15-Counter)/16)*16,
                                     format(atom(Size1),'$~w',[Size]).

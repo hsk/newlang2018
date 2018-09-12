@@ -5,11 +5,13 @@
   test(memAlloc) :-
     memAlloc([
       ('main',[
-        movl('$1','a'),
-        call('printInt',['a']),
-        movl('$0','b'),
-        ret('b')
+        (bb1,[
+          movl('$1','a'),
+          call('printInt',['a']),
+          movl('$0','b'),
+          ret('b')
         ])
+      ])
     ],L),
     format('l=~w',[L]),
     emit('a.s',L),

@@ -27,9 +27,10 @@ code(bne(A,B,C)) :-     asm('\tmovl ~w,%eax',[A]),
                         asm('\tjmp ~w',[C]).
 code(br(A)) :-          asm('\tjmp ~w',[A]).
 code(label(A)) :-       asm('~w:',[A]).
+bb((L,Cs)) :-           asm('~w:',[L]),maplist(code,Cs).
 func((Name,Body)) :-    asm('\t.globl ~w',[Name]),
                         asm('~w:',[Name]),
                         asm('\tpushq\t%rbp'),
                         asm('\tmovq\t%rsp,%rbp'),
-                        maplist(code,Body).
+                        maplist(bb,Body).
 emit(File,Ls) :-        open(File),maplist(func,Ls),close().

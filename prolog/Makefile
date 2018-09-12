@@ -6,5 +6,6 @@ test:
 	swipl tests/test_memAlloc.pl
 	swipl tests/test_genCode.pl
 	make clean
+	@echo "test ok"
 clean:
 	rm -rf a a.s

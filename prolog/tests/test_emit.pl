@@ -9,9 +9,11 @@
     % 1を出力するプログラム
     emit('a.s', [
       ('main',[
-        movl('$1', '%edi'),
-        call('printInt',[]),
-        ret('$0')
+        ('.bb1',[
+          movl('$1', '%edi'),
+          call('printInt',[]),
+          ret('$0')
+        ])
       ])
     ]),
     shell('gcc -static -o a a.s lib/lib.c'),
