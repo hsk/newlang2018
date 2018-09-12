@@ -1,9 +1,9 @@
-:- use_module('../expand').
+:- use_module('../genCode').
 :- use_module('../memAlloc').
 :- use_module('../emit').
-:- begin_tests(expand).
-  test(expand) :-
-    expand([
+:- begin_tests(genCode).
+  test(genCode) :-
+    genCode([
       ('main',[],[
         mov(100,'a'),
         mov(20,'b'),
@@ -22,5 +22,5 @@
     emit('a.s',M),
     shell('gcc -static -o a a.s lib/lib.c'),
     shell('./a').
-:- end_tests(expand).
+:- end_tests(genCode).
 :- run_tests,halt; halt(-1).

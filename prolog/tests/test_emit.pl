@@ -1,5 +1,10 @@
 :- use_module('../emit.pl').
 :- begin_tests(emit).
+  test('write') :-
+    emit:open('a.s'),
+    emit:asm('test'),
+    emit:close(),
+    emit:readfile('a.s','test\n').
   test(emit1) :-
     % 1を出力するプログラム
     emit('a.s', [
