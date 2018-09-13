@@ -1,5 +1,5 @@
 :- use_module('../genCode').
-:- use_module('../memAlloc').
+:- use_module('../graphRegAlloc').
 :- use_module('../emit').
 :- begin_tests(genCode).
   test(genCode) :-
@@ -13,14 +13,12 @@
         ret('e')
       ]),
       ('add',['a','b','c'],[
-        ret(add('a',add('b','c')))
+        ret(bin(add,'a',bin(add,'b','c')))
       ])
     ],P),
-    format('p=~w\n',[P]),
-    memAlloc(P,M),
-    format('m=~w\n',[M]),
+    regAlloc(P,M),
     emit('a.s',M),
     shell('gcc -static -o a a.s lib/lib.c'),
-    shell('./a').
+    shell('./a > a.txt ; echo 123 | diff a.txt -').
 :- end_tests(genCode).
 :- run_tests,halt; halt(-1).

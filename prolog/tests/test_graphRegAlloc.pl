@@ -1,9 +1,9 @@
-:- use_module('../memAlloc').
+:- use_module('../graphRegAlloc').
 :- use_module('../emit').
 
-:- begin_tests(memAlloc).
-  test(memAlloc) :-
-    memAlloc([
+:- begin_tests(regAlloc).
+  test(regAlloc) :-
+    regAlloc([
       ('main',[
         (bb1,[
           mov('$1','a'),
@@ -13,9 +13,8 @@
         ])
       ])
     ],L),
-    format('l=~w',[L]),
     emit('a.s',L),
     shell('gcc -static -o a a.s lib/lib.c'),
-    shell('./a').
-:- end_tests(memAlloc).
+    shell('./a > a.txt ; echo 1 | diff a.txt -').
+:- end_tests(regAlloc).
 :- run_tests,halt; halt(-1).

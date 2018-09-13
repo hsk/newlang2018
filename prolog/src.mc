@@ -1,3 +1,9 @@
+add(a,b,c)=[
+  return(a+b+c)
+].
+add2(a,b)=[
+  return(a+b)
+].
 main()=[
   if(0,[
     a=0
@@ -11,10 +17,4 @@ main()=[
 sum(n)=[
   if(n,[return(sum(n-1)+n)],[]),
   return(n)
-].
-add(a,b,c)=[
-  return(a+b+c)
-].
-add2(a,b)=[
-  return(a+b)
 ].

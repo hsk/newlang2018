@@ -3,14 +3,16 @@
 
 regs(['%rdi','%rsi','%rdx','%rcx','%r8','%r9']).
 
-init_bbs(Lbl)  :- nb_linkval(lbl,Lbl),nb_linkval(cs,(H,H)),
+init_bbs(Lbl)  :- nb_linkval(lbl,Lbl),nb_linkval(cs,[]),
                   nb_linkval(bbs,(H1,H1)).
-add(C)         :- nb_getval(cs,(Cs,[C|H])),nb_linkval(cs,(Cs,H)).
-add_label(Lbl) :- nb_getval(lbl,Lb2),nb_getval(cs,(Cs,[])),
-                  nb_getval(bbs,(BBs,[(Lb2,Cs)|H1])),nb_linkval(bbs,(BBs,H1)),
-                  nb_linkval(lbl,Lbl),nb_linkval(cs,(H,H)).
-get_bbs(BBs)   :- nb_getval(lbl,Lbl),nb_getval(cs,(Cs,[])),
-                  nb_getval(bbs,(BBs,[(Lbl,Cs)])).
+add(C)         :- nb_getval(cs,Cs),
+                  (Cs=[L|_],member(L,[call(_,_),br(_),bne(_,_,_),ret(_)])
+                  ;nb_linkval(cs,[C|Cs])).
+add_label(Lbl) :- nb_getval(lbl,Lb2),nb_getval(cs,Cs),reverse(Cs,Cs_),
+                  nb_getval(bbs,(BBs,[(Lb2,Cs_)|H1])),nb_linkval(bbs,(BBs,H1)),
+                  nb_linkval(lbl,Lbl),nb_linkval(cs,[]).
+get_bbs(BBs)   :- nb_getval(lbl,Lbl),nb_getval(cs,Cs),reverse(Cs,Cs_),
+                  nb_getval(bbs,(BBs,[(Lbl,Cs_)])).
 
 code(bin(Op,A,B),R) :-  genid('.ex.',R),code(A,A1),code(B,B1),add(bin(Op,A1,B1,R)).
 code(mov(A,R),R) :-     atom(A),!,add(mov(A,R)).

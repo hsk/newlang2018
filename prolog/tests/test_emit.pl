@@ -8,15 +8,15 @@
   test(emit1) :-
     % 1を出力するプログラム
     emit('a.s', [
-      ('main',[
+      ('main',[],[
         ('.bb1',[
           mov('$1', '%rdi'),
-          call('printInt',[],'%rax'),
+          call('printInt',[],'%rax',[]),
           ret('$0')
         ])
       ])
     ]),
     shell('gcc -static -o a a.s lib/lib.c'),
-    shell('./a').
+    shell('./a>a.txt; echo 1 | diff a.txt -').
 :- end_tests(emit).
 :- run_tests,halt; halt(-1).

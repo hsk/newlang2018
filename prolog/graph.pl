@@ -12,11 +12,11 @@ n1(A-B,Ns,[A:[B|As]/Al1,B:[A|Bs]/Bl1|Ns_]) :- subtract(Ns,[A:As/Al,B:Bs/Bl],Ns_)
                              (As=[],Al1=1;Al1 is Al+1),(Bs=[],Bl1=1;Bl1 is Bl+1).
 
 liveness(G,R) :- maplist(l_func(G),G,G2),(G=G2->R=G;liveness(G2,R)).
-l_func(G,(K,[inp=Inp,out=Out,block=Block,br=Br]),
-         (K,[inp=In3,out=Ou2,block=Block,br=Br])) :-
-    foldl(l_br(G),Br,(Out,Inp),(Ou1,In1)),reverse(Block,RBlock),
-    ((Br \= [];Block=[]) -> (Ou2,In2)=(Ou1,In1)
-    ; [(_,LInp)|_]=RBlock,union(LInp,Ou1,Ou2),union(LInp,In1,In2)),
+l_func(G,(K,[inp=Inp,out=_,block=Block,br=Br]),
+         (K,[inp=In3,out=Ou1,block=Block,br=Br])) :-
+    foldl(l_br(G),Br,([],Inp),(Ou1,In1)),reverse(Block,RBlock),
+    ((Br \= [];Block=[]) -> In2=In1
+    ; [(_,LInp)|_]=RBlock,union(LInp,In1,In2)),
     foldl(l_bb,RBlock,In2,In3).
 l_br(G,B,(Out,Inp),(Ou2,In2))  :- member((B,V),G),member(inp=In1,V),
                                   union(In1,Out,Ou2),union(In1,Inp,In2).
@@ -43,5 +43,9 @@ gen_edges3(O,(Es,S),(Es1,S1)):- addEs(O,O,Es,Es1),subtract(S,[O],S1).
 kill(G,R) :- maplist(kill_func,G,R).
 kill_func((_,[inp=Inp,out=Out,block=Block|_]),(Inp,Kills)) :-
   reverse(Block,RBlock),foldl(kill_bb,RBlock,(Out,[]),(_,Kills)).
-kill_bb((Out,Inp),(Lives,Kills),(Lives1,[(Out,Dies)|Kills])) :-
-  subtract(Inp, Lives,Dies),subtract(Lives,Out,Lives1).
+kill_bb((Out,Inp),(Lives,Kills),(Lives2,[(Out,Dies)|Kills])) :-
+  union(Inp,Out,InOu),
+  subtract(InOu,Lives,Dies), % 最後の出現。ここで死んだ
+  union(Inp,Lives,Lives1), % 入力あったので生きている
+  subtract(Lives1,Out,Lives2), % 生まれる前は生きてない
+  !.

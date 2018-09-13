@@ -1,4 +1,4 @@
-:- use_module([genCode,graphRegAlloc,memAlloc,emit]).
+:- use_module([genCode,graphRegAlloc,emit]).
 
 expr(I,I) :- integer(I),!.
 expr(A,A) :- atom(A),!.
@@ -16,7 +16,6 @@ parseFile(File,Fs_) :- read_file_to_terms(File,Fs,[]),parse(Fs,Fs_).
 
 compile(File) :-  parseFile(File,P),genCode(P,E),
                   regAlloc(E,M), emit('a.s',M),
-                  %memAlloc(E,M), emit('a.s',M),
                   shell('gcc -static -o a a.s lib/lib.c').
 
 :- compile('src.mc'),shell('./a').
