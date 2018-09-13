@@ -6,9 +6,9 @@
     memAlloc([
       ('main',[
         (bb1,[
-          movl('$1','a'),
-          call('printInt',['a']),
-          movl('$0','b'),
+          mov('$1','a'),
+          call('printInt',['a'],'%rax'),
+          mov('$0','b'),
           ret('b')
         ])
       ])

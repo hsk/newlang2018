@@ -1,7 +1,7 @@
 :- module(genCode,[genCode/2]).
 :- use_module(utils).
 
-regs(['%edi','%esi','%edx','%ecx','%r8d','%r9d']).
+regs(['%rdi','%rsi','%rdx','%rcx','%r8','%r9']).
 
 init_bbs(Lbl)  :- nb_linkval(lbl,Lbl),nb_linkval(cs,(H,H)),
                   nb_linkval(bbs,(H1,H1)).
@@ -13,23 +13,23 @@ get_bbs(BBs)   :- nb_getval(lbl,Lbl),nb_getval(cs,(Cs,[])),
                   nb_getval(bbs,(BBs,[(Lbl,Cs)])).
 
 code(bin(Op,A,B),R) :-  genid('.ex.',R),code(A,A1),code(B,B1),add(bin(Op,A1,B1,R)).
-code(mov(A,R),R) :-     atom(A),!,add(movl(A,R)).
-code(mov(A,R),R) :-     integer(A),!,format(atom(D),'$~w',[A]),add(movl(D,R)).
-code(mov(A,R),R) :-     code(A,R1),add(movl(R1,R)).
-code(call(A,B),R) :-    genid('.ex.',R),maplist(code,B,Rs),add(call(A,Rs)),add(movl('%eax',R)).
+code(mov(A,R),R) :-     atom(A),!,add(mov(A,R)).
+code(mov(A,R),R) :-     integer(A),!,format(atom(D),'$~w',[A]),add(mov(D,R)).
+code(mov(A,R),R) :-     code(A,R1),add(mov(R1,R)).
+code(call(A,B),R) :-    genid('.ex.',R),maplist(code,B,Rs),add(call(A,Rs,R)).
 code(R,R) :-            atom(R),!.
 code(I,R) :-            integer(I),!,format(atom(R),'$~w',I).
 code(E,_) :-            writeln(error:E),halt.
-stmt(if(A,C,D),null) :- genid('.else',Else),genid('.then',Then),
+stmt(if(A,C,D)) :-      genid('.else',Else),genid('.then',Then),
                         code(A,R1),add(bne(R1,Then,Else)),genid('.cont',Cont),
-                        add_label(Then),maplist(stmt,C,_),add(br(Cont)),
-                        add_label(Else),maplist(stmt,D,_),add(br(Cont)),
+                        add_label(Then),maplist(stmt,C),add(br(Cont)),
+                        add_label(Else),maplist(stmt,D),add(br(Cont)),
                         add_label(Cont).
-stmt(ret(E),R) :-       code(E,R),add(ret(R)).
-stmt(E,R) :-            code(E,R).
+stmt(ret(E)) :-         code(E,R),add(ret(R)).
+stmt(E) :-              code(E,_).
 argv([],_).
-argv([A|As],[R|Rs])  :- add(movl(R,A)),argv(As,Rs).
+argv([A|As],[R|Rs])  :- add(mov(R,A)),argv(As,Rs).
 func((N,A,B),(N,BBs)):- genid('.enter',Enter),init_bbs(Enter),
                         regs(Regs),argv(A,Regs),
-                        maplist(stmt,B,_),get_bbs(BBs).
+                        maplist(stmt,B),get_bbs(BBs).
 genCode(P,R) :- maplist(func,P,R),!.

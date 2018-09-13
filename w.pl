@@ -7,7 +7,7 @@ c2(C,E,A:N/_,Cs,Cs) :- (member(A:_,Cs);member(A,E);member(V,N),member(V:C,Cs)),!
 c2(C,_,A:_/_,Cs,[A:C|Cs]).
 n(Es,Ns) :- foldl(n1,Es,[],Ns).
 n1(A-B,Ns,[A:[B|As]/Al1,B:[A|Bs]/Bl1|Ns_]) :- subtract(Ns,[A:As/Al,B:Bs/Bl],Ns_),
-                              (As=[],Al=1;Al1 is Al+1),(Bs=[],Bl1=1;Bl1 is Bl+1).
+                             (As=[],Al1=1;Al1 is Al+1),(Bs=[],Bl1=1;Bl1 is Bl+1).
 dot(Cs,Es,R) :- maplist(dot1,Cs,R1),maplist(dot2,Es,R2),
                 append([['graph G{\n'],R1,R2,['}']],R3),atomic_list_concat(R3,R).
 dot1(K:C,A) :- format(atom(A),'  ~w [label="~w r~w"]\n',[K,K,C]).

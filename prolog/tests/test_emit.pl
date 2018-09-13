@@ -10,8 +10,8 @@
     emit('a.s', [
       ('main',[
         ('.bb1',[
-          movl('$1', '%edi'),
-          call('printInt',[]),
+          mov('$1', '%rdi'),
+          call('printInt',[],'%rax'),
           ret('$0')
         ])
       ])

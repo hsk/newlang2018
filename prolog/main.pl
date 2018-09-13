@@ -1,9 +1,9 @@
-:- use_module([genCode,memAlloc,emit]).
+:- use_module([genCode,graphRegAlloc,memAlloc,emit]).
 
 expr(I,I) :- integer(I),!.
 expr(A,A) :- atom(A),!.
-expr(E1+E2,bin(addl,E1_,E2_)) :- expr(E1,E1_),expr(E2,E2_).
-expr(E1-E2,bin(subl,E1_,E2_)) :- expr(E1,E1_),expr(E2,E2_).
+expr(E1+E2,bin(addq,E1_,E2_)) :- expr(E1,E1_),expr(E2,E2_).
+expr(E1-E2,bin(subq,E1_,E2_)) :- expr(E1,E1_),expr(E2,E2_).
 expr(A=E,mov(E_,A)) :- atom(A),expr(E,E_).
 expr(AEs,call(A,Es_)) :- compound_name_arguments(AEs,A,Es),maplist(expr,Es,Es_).
 expr(E,_) :- writeln(error:E),halt.
@@ -14,7 +14,9 @@ func(NP=B,(N,P,B_)) :- compound_name_arguments(NP,N,P),maplist(stmt,B,B_).
 parse(Fs,Fs_) :- maplist(func,Fs,Fs_),!.
 parseFile(File,Fs_) :- read_file_to_terms(File,Fs,[]),parse(Fs,Fs_).
 
-compile(File) :-  parseFile(File,P),genCode(P,E),memAlloc(E,M),emit('a.s',M),
+compile(File) :-  parseFile(File,P),genCode(P,E),
+                  regAlloc(E,M), emit('a.s',M),
+                  %memAlloc(E,M), emit('a.s',M),
                   shell('gcc -static -o a a.s lib/lib.c').
 
 :- compile('src.mc'),shell('./a').
