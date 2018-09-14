@@ -6,21 +6,26 @@ close() :- nb_getval(fp,FP),close(FP).
 asm(S) :- nb_getval(fp,FP),writeln(FP,S).
 asm(S,F) :- nb_getval(fp,FP),format(FP,S,F),nl(FP).
 readfile(File,A) :- read_file_to_string(File,Str,[]),atom_string(A,Str).
-prms([],_).
-prms([P|Ps],[R|Rs]) :-  asm('\tmov ~w,~w',[P,R]),prms(Ps,Rs).
+prms([],_,0).
+prms([P|Ps],[R|Rs],N) :- prms(Ps,Rs,N),asm('\tmov ~w,~w',[P,R]).
+prms(Ps,[],N) :- prms2(Ps,0,N).
+prms2([],C,C).
+prms2([P|Ps],C,N) :- C8 is C+8,prms2(Ps,C8,N),asm('\tpush ~w',[P]).
+
 code(mov(A,B)) :-       (re_match('^[%$]',A);re_match('^%',B)),!,
                         asm('\tmovq ~w,~w',[A,B]).
 code(mov(A,B)) :-       asm('\tmov ~w,%rax',[A]),
                         asm('\tmov %rax,~w',[B]).
-code(enter(A,Rs))   :-  (A='$0';asm('\tsubq %rsp,~w',[A])),
+code(enter(A,Rs))   :-  (A='$0';asm('\tsubq ~w,%rsp',[A])),
                         maplist([R]>>asm('\tpush ~w',[R]),Rs),!.
 code(bin(Op,A,B,C)) :-  asm('\tmov ~w,%rax',[A]),
                         asm('\t~w ~w,%rax',[Op,B]),
                         asm('\tmov %rax,~w',[C]).
 code(call(N,B,C,Cs)) :- regs(Regs),
                         maplist([R]>>asm('\tpush ~w',[R]),Cs),
-                        prms(B,Regs),
+                        prms(B,Regs,P),
                         asm('\tcall ~w',[N]),
+                        (P=0;asm('\taddq $~w,%rsp',[P])),
                         reverse(Cs,RCs),maplist([R]>>asm('\tpop ~w',[R]),RCs),
                         asm('\tmov %rax,~w',[C]).
 code(ret(A)) :-         asm('\tmov ~w,%rax',[A]),nb_getval(name,Name),

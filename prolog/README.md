@@ -1,6 +1,6 @@
 # Simple x86_64 native compiler writing by SWI-Prolog on linux.
 
-250 line toy language compiler.
+300 line toy language compiler.
 
 ## feautures
 
@@ -14,11 +14,17 @@
 
     apt install swi-prolog gcc
 
-## run
+## usage
 
-    make test
+    swipl main.pl src.mc
 
-source file
+is linear scan register allocation or
+
+    swipl main.pl -O1 src.mc
+
+is graph register allocation.
+
+## source program example
 
     % src.mc
     main()=[
@@ -45,21 +51,20 @@ source file
 ## compile path
 
 - parse *.mc
-    - read and convert AST
+    - read prolog style expressions and convert AST
         - main.pl
 - generate inner codes
     - compile AST to inner codes
         - genCode.pl
-- regster allocation or memory allocation
-    - allocate register to inner code with graph coloring register allocation algorithm
-        - graph.pl liveness.pl graphRegAlloc.pl
+- regster allocation
+    - allocate register from inner codes which linear scan or graph coloring register allocation algorithm
+        - liveness.pl linearScanRegAlloc.pl graph.pl graphRegAlloc.pl
 - output x86_64 assembly code
     - output assembly from inner codes to a *.s file
     - emit.pl
+- generate a uniqe id
+    - utils.pl
 
 ## todo
 
-- 関数内での使用レジスタのみを関数のenter leaveの処理でpush,popする
-- 関数コール時に生きているレジスタのみpushする
-- 引数足りなくなった場合でも動作するようにする
-- コマンドラインでファイル名を指定する
+- 関数引数用パラメータを有効利用する
