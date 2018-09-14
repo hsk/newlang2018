@@ -1,5 +1,4 @@
 :- module(emit,[emit/2]).
-:- use_module(utils).
 regs(['%rdi','%rsi','%rdx','%rcx','%r8','%r9']).
 open(File) :- open(File,write,FP),nb_setval(fp,FP).
 close() :- nb_getval(fp,FP),close(FP).
@@ -12,6 +11,7 @@ prms(Ps,[],N) :- prms2(Ps,0,N).
 prms2([],C,C).
 prms2([P|Ps],C,N) :- C8 is C+8,prms2(Ps,C8,N),asm('\tpush ~w',[P]).
 
+code(mov(A,A)).
 code(mov(A,B)) :-       (re_match('^[%$]',A);re_match('^%',B)),!,
                         asm('\tmovq ~w,~w',[A,B]).
 code(mov(A,B)) :-       asm('\tmov ~w,%rax',[A]),
@@ -38,7 +38,7 @@ code(br(A)) :-          asm('\tjmp ~w',[A]).
 code(label(A)) :-       asm('~w:',[A]).
 code(prms(A)) :-        asm('\t# params ~w',[A]).
 code(E) :- writeln(error:emit;code(E)),halt.
-bb((L,Cs)) :-           asm('~w:',[L]),maplist(code,Cs).
+bb((L,Cs)) :-           asm('~w:',[L]),maplist(code,Cs),!.
 func((Name,Rs,BBs)) :-  asm('\t.globl ~w',[Name]),
                         asm('~w:',[Name]),
                         asm('\tpushq\t%rbp'),

@@ -1,11 +1,11 @@
 # Simple x86_64 native compiler writing by SWI-Prolog on linux.
 
-300 line toy language compiler.
+310 line toy language compiler.
 
 ## feautures
 
-- Simple memory allocation
-    - All variable saved on memory.
+- Linear Scan register allocation & spilling
+    - Spilling use Simple memory allocation algorithm.
 - Graph coloring register allocation & spilling
     - Allocator use Welsh & Powell coloring algorithm.
     - Spilling use Simple memory allocation algorithm.

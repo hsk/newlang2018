@@ -14,8 +14,8 @@ argv(As,[],M,[]) :- argv2(As,16,M).
 argv2([],_,[]).
 argv2([A|As],C,[A:R|M]) :- format(atom(R),'~w(%rbp)',[C]),
                            C8 is C+8,argv2(As,C8,M).
-prms(Ps,Ps_) :- regp(Regp),argv(Ps,Regp,M,_Regs1),
-                nb_linkval(m,M),maplist([_:A1,A1]>>!,M,Ps_).
+prms(Ps,Ps_) :- regp(Regp),argv(Ps,Regp,M,_Regs1),nb_getval(m,M1),union(M,M1,M2),
+                nb_linkval(m,M2),maplist([_:A1,A1]>>!,M,Ps_).
 getPush(Cs) :- nb_getval(lives,Lives),nb_getval(m,M),regp2(Rs),
                foldl(getPush1(M,Rs),Lives,[],Cs).
 getPush1(M,Rs,A,Cs,[R|Cs]) :- member(A:R,M),member(R,Rs),\+member(R,Cs).
@@ -32,7 +32,7 @@ code(prms(Ps),prms(Ps_))            :- prms(Ps,Ps_).
 code(C,_) :- writeln(error:lineScan;code(C)),halt(-1).
 code1(Code,(Out,Kill),Code_) :-
   nb_getval(lives,Lives),subtract(Lives,Kill,Lives1),nb_linkval(lives,Lives1),
-  code(Code,Code_),
+  code(Code,Code_),!,
   union(Lives1,Out,Lives2),nb_linkval(lives,Lives2).
 
 bb((L,BB),(Lives,Kill),(L,BB1)) :-
@@ -44,10 +44,18 @@ func((N,BBs),(M1,Kills),(N,Rs,[(N1,[enter(Size1,RRs)|Cs])|BBs1])) :-
   regs2(Regs2),include([R]>>member(_:R,M),Regs2,Rs),reverse(Rs,RRs),
   Size is floor((15-Counter)/16)*16,format(atom(Size1),'$~w',[Size]).
 
-alloc_func((Live,Kills),(M,Kills)) :-
+alloc_func((_,[(_,[prms(Prms)|_])|_]),(Live,Kills),(M1,Kills)) :-
   gen_edges(Live,Edges),neighbors(Edges,Ns),coloring(Ns,Cs),
-  regs(Regs),findall(A:R,(member(A:I,Cs),nth1(I,Regs,R)),M).
+  nb_setval(m,[]),
+  (prms(Prms,Ps),!),maplist([P,A,P:A,I:A]>>(member(P:I,Cs),!),Prms,Ps,M,I2R),
+  regp(Regp),subtract(Regp,Ps,Regp2),regs(Regs),union(Regs,Regp2,Regs2),
+  foldl(alloc_m,Cs,(Regs2,I2R,M),(_,_,M1)).
+
+alloc_m(A:I,(Regs,I2R,M),(Regs,I2R,M2)) :- member(I:R,I2R),!,(member(R:_,M)->M2=M;M2=[A:R|M]).
+alloc_m(A:I,(Regs,I2R,M),(Regs,[I:R|I2R],M)) :- member(A:R,M),!.
+alloc_m(A:I,([R|Regs],I2R,M),(Regs,[I:R|I2R],[A:R|M])) :- !.
+alloc_m(_,([],I2R,M),([],I2R,M)).
 
 regAlloc(Fs,Fs_) :-
-  collect(Fs,Lives),maplist(alloc_func,Lives,Allocs),
+  collect(Fs,Lives),maplist(alloc_func,Fs,Lives,Allocs),
   maplist(func,Fs,Allocs,Fs_).

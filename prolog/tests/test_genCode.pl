@@ -2,6 +2,13 @@
 :- use_module('../graphRegAlloc').
 :- use_module('../emit').
 :- begin_tests(genCode).
+  test(genid) :-
+    resetid,
+    genid(a,a0),
+    genid(a,a1),
+    genid(a,a2),
+    resetid.
+
   test(genCode) :-
     genCode([
       ('main',[],[

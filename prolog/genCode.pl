@@ -1,7 +1,9 @@
-:- module(genCode,[genCode/2]).
-:- use_module(utils).
-
+:- module(genCode,[genCode/2,resetid/0,genid/1,genid/2]).
 regs(['%rdi','%rsi','%rdx','%rcx','%r8','%r9']).
+
+resetid :- nb_setval(idcounter,0).
+genid(C) :- nb_getval(idcounter,C),C1 is C+1,nb_setval(idcounter,C1).
+genid(S,S1) :- nb_getval(idcounter,C),C1 is C+1,nb_setval(idcounter,C1),atom_concat(S,C,S1).
 
 init_bbs(Lbl)  :- nb_linkval(lbl,Lbl),nb_linkval(cs,[]),
                   nb_linkval(bbs,(H1,H1)).
@@ -32,4 +34,4 @@ stmt(E) :-              code(E,_).
 func((N,A,B),(N,BBs)) :-  genid('.enter',Enter),init_bbs(Enter),
                           add(prms(A)),
                           maplist(stmt,B),get_bbs(BBs).
-genCode(P,R) :- maplist(func,P,R),!.
+genCode(P,R) :- resetid,maplist(func,P,R),!.
