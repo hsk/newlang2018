@@ -64,7 +64,3 @@ is graph register allocation.
     - emit.pl
 - generate a uniqe id
     - utils.pl
-
-## todo
-
-- 関数引数用パラメータを有効利用する

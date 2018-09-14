@@ -29,14 +29,7 @@ stmt(if(A,C,D)) :-      genid('.else',Else),genid('.then',Then),
                         add_label(Cont).
 stmt(ret(E)) :-         code(E,R),add(ret(R)).
 stmt(E) :-              code(E,_).
-argv([],_).
-argv([A|As],[R|Rs])  :- add(mov(R,A)),argv(As,Rs).
-argv(As,[]) :- argv2(As,16).
-argv2([],_).
-argv2([A|As],C) :- format(atom(R),'~w(%rbp)',[C]),add(mov(R,A)),
-                   C8 is C+8,argv2(As,C8).
-
-func((N,A,B),(N,BBs)):- genid('.enter',Enter),init_bbs(Enter),
-                        regs(Regs),argv(A,Regs),
-                        maplist(stmt,B),get_bbs(BBs).
+func((N,A,B),(N,BBs)) :-  genid('.enter',Enter),init_bbs(Enter),
+                          add(prms(A)),
+                          maplist(stmt,B),get_bbs(BBs).
 genCode(P,R) :- maplist(func,P,R),!.

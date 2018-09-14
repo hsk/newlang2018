@@ -1,4 +1,9 @@
-:- module(liveness,[collect/2]).
+:- module(liveness,[collect/2,regp/1,regs/1,regp2/1,regs2/1]).
+
+regp(['%rdi','%rsi','%rdx','%rcx','%r8','%r9']).
+regs(['%r10','%r11','%rbx','%r12','%r13','%r14','%r15']).
+regp2(['%rdi','%rsi','%rdx','%rcx','%r8','%r9','%r10','%r11']).
+regs2(['%rbx','%r12','%r13','%r14','%r15']).
 
 liveness(G,R) :- maplist(l_func(G),G,G2),(G=G2->R=G;liveness(G2,R)).
 l_func(G,(K,[inp=Inp,out=_,block=Block,br=Br]),
@@ -23,6 +28,7 @@ kill_bb((Out,Inp),(Lives,Kills),(Lives2,[(Ou2,Dies)|Kills])) :-
 
 imm1(R) :- atom(R),\+re_match('^[$%]',R).
 imm(Is,Is_) :- include(imm1,Is,Is_).
+code(prms(Ps),(Ps,[])).
 code(mov(I,R),([R],Is)) :- imm([I],Is).
 code(bin(_,I1,I2,R),([R],Is)) :- imm([I1,I2],Is).
 code(ret(I),([],Is)) :- imm([I],Is).

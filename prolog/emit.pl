@@ -36,6 +36,8 @@ code(bne(A,B,C)) :-     asm('\tmov ~w,%rax',[A]),
                         asm('\tjmp ~w',[C]).
 code(br(A)) :-          asm('\tjmp ~w',[A]).
 code(label(A)) :-       asm('~w:',[A]).
+code(prms(A)) :-        asm('\t# params ~w',[A]).
+code(E) :- writeln(error:emit;code(E)),halt.
 bb((L,Cs)) :-           asm('~w:',[L]),maplist(code,Cs).
 func((Name,Rs,BBs)) :-  asm('\t.globl ~w',[Name]),
                         asm('~w:',[Name]),
