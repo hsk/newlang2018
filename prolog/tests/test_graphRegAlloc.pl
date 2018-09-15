@@ -4,9 +4,8 @@
 :- begin_tests(regAlloc).
   test(regAlloc) :-
     regAlloc([
-      ('main',[
+      ('main',[],[
         (bb1,[
-          prms([]),
           mov('$1','a'),
           call('printInt',['a'],'%rax'),
           mov('$0','b'),
