@@ -10,14 +10,11 @@ adr(A,N) :- atom(A),!,nb_getval(counter,C),C1 is C-8,nb_linkval(counter,C1),
             nb_getval(m,M),nb_linkval(m,[A:N|M]).
 adr(A,A).
 adrs(A,A1) :- maplist(adr,A,A1).
-argv([],Rs,[],Rs).
-argv([A|As],[R|Rs],[A:R|M],Rs_)  :- argv(As,Rs,M,Rs_).
-argv(As,[],M,[]) :- argv2(As,16,M).
-argv2([],_,[]).
-argv2([A|As],C,[A:R|M]) :- format(atom(R),'~w(%rbp)',[C]),
-                           C8 is C+8,argv2(As,C8,M).
-prms(Ps,Ps_) :- regp(Regp),argv(Ps,Regp,M,_Regs1),
-                nb_linkval(m,M),maplist([_:A1,A1]>>!,M,Ps_).
+prms(Ps,Ps_) :- regp(Regp),length(Regp,L),
+                findall(P:R,(nth0(I,Ps,P),nth0(I,Regp,R)),M),
+                findall(P:R,(nth0(I,Ps,P),I>=L,C is (I-L+2)*8,atom_concat(C,'(%rbp)',R)),M2),
+                append(M,M2,M3),nb_getval(m,M4),union(M3,M4,M5),
+                nb_linkval(m,M5),maplist([_:A1,A1]>>!,M3,Ps_).
 getPush(Cs) :- nb_getval(lives,Lives),nb_getval(m,M),regp2(Rs),
                foldl(getPush1(M,Rs),Lives,[],Cs).
 getPush1(M,Rs,A,Cs,[R|Cs]) :- member(A:R,M),member(R,Rs),\+member(R,Cs).
@@ -43,12 +40,11 @@ code1(Code,(Out,Kill),Code_) :-
 
 bb((L,BB),(Lives,Kill),(L,BB1)) :-
   nb_linkval(lives,Lives),maplist(code1,BB,Kill,BB1).
-func((N,BBs),(_,Kills),(N,Rs,[(N1,[enter(Size1,RRs)|Cs])|BBs1])) :-
+func((N,BBs),(_,Kills),(N,Rs,[(N1,[enter(Size,RRs)|Cs])|BBs1])) :-
   regs(Regs),nb_linkval(unused,Regs),
   nb_linkval(counter,0),nb_linkval(m,[]),
-  maplist(bb,BBs,Kills,[(N1,Cs)|BBs1]),nb_getval(counter,Counter),
+  maplist(bb,BBs,Kills,[(N1,Cs)|BBs1]),nb_getval(counter,Size),
   nb_getval(m,M),
-  regs2(Regs2),include([R]>>member(_:R,M),Regs2,Rs),reverse(Rs,RRs),
-  Size is floor((15-Counter)/16)*16,format(atom(Size1),'$~w',[Size]).
+  regs2(Regs2),include([R]>>member(_:R,M),Regs2,Rs),reverse(Rs,RRs).
 
 linearScanRegAlloc(Fs,Fs_) :- collect(Fs,Lives),maplist(func,Fs,Lives,Fs_).

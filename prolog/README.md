@@ -1,6 +1,6 @@
 # Simple x86_64 native compiler writing by SWI-Prolog on linux.
 
-310 line toy language compiler.
+300 line toy language compiler.
 
 ## feautures
 
@@ -62,5 +62,3 @@ is graph register allocation.
 - output x86_64 assembly code
     - output assembly from inner codes to a *.s file
     - emit.pl
-- generate a uniqe id
-    - utils.pl
