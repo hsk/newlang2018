@@ -61,4 +61,4 @@ is graph register allocation.
         - liveness.pl linearScanRegAlloc.pl graph.pl graphRegAlloc.pl
 - output x86_64 assembly code
     - output assembly from inner codes to a *.s file
-    - emit.pl
+    - genAmd64.pl

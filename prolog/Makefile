@@ -16,10 +16,10 @@ mcc: *.pl
 	swipl -g main -o mcc -c main.pl
 
 test:
-	swipl tests/test_emit.pl
+	swipl tests/test_genAmd64.pl
 	swipl tests/test_graphRegAlloc.pl
 	swipl tests/test_genCode.pl
 	make clean
 	@echo "test ok"
 clean:
-	rm -rf a a.s a.txt mcc
+	rm -rf a.out a a.s a.txt mcc

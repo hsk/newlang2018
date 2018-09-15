@@ -1,5 +1,5 @@
 :- use_module('../graphRegAlloc').
-:- use_module('../emit').
+:- use_module('../genAmd64').
 
 :- begin_tests(regAlloc).
   test(regAlloc) :-
@@ -14,7 +14,7 @@
         ])
       ])
     ],L),
-    emit('a.s',L),
+    genAmd64('a.s',L),
     shell('gcc -static -o a a.s lib/lib.c'),
     shell('./a > a.txt ; echo 1 | diff a.txt -').
 :- end_tests(regAlloc).

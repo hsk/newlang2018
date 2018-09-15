@@ -29,7 +29,6 @@ stmt(if(A,C,D)) :-      genid('.else',Else),genid('.then',Then),
                         label(Cont).
 stmt(ret(E)) :-         code(E,R),add(ret(R)).
 stmt(E) :-              code(E,_).
-func((N,A,B),(N,BBs)) :-  genid('.enter',Enter),init_bbs(Enter),
-                          add(prms(A)),
+func((N,A,B),(N,A,BBs)) :- genid('.enter',Enter),init_bbs(Enter),
                           maplist(stmt,B),get_bbs(BBs).
 genCode(P,R) :- resetid,maplist(func,P,R),!.

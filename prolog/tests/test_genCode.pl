@@ -1,6 +1,6 @@
 :- use_module('../genCode').
 :- use_module('../graphRegAlloc').
-:- use_module('../emit').
+:- use_module('../genAmd64').
 :- begin_tests(genCode).
   test(genid) :-
     resetid,
@@ -24,7 +24,7 @@
       ])
     ],P),
     regAlloc(P,M),
-    emit('a.s',M),
+    genAmd64('a.s',M),
     shell('gcc -static -o a a.s lib/lib.c'),
     shell('./a > a.txt ; echo 123 | diff a.txt -').
 :- end_tests(genCode).

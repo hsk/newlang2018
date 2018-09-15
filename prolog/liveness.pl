@@ -25,7 +25,6 @@ kill_bb((_,[i=I,o=O,bb=BB|_]),(I,Kills)) :-
 kill(G,R) :- maplist(kill_bb,G,R).
 
 io_imm(Is,Is_) :- findall(R,(member(R,Is),atom(R),\+re_match('^[$%]',R)),Is_).
-io_code(prms(Ps),(Ps,[])).
 io_code(mov(I,R),([R],Is)) :- io_imm([I],Is).
 io_code(bin(_,I1,I2,R),([R],Is)) :- io_imm([I1,I2],Is).
 io_code(ret(I),([],Is)) :- io_imm([I],Is).
@@ -40,6 +39,6 @@ io_bb_br(_,[]).
 io_bb((L,BB),(L,[i=[],o=[],bb=BBIO,br=Br])) :-
   maplist(io_code,BB,BBIO),io_bb_br(BB,Br).
 io_bbs(BBs,BBIOs) :- maplist(io_bb,BBs,BBIOs).
-func((_,BBs),(Live,Kills)) :-
+func((_,_,BBs),(Live,Kills)) :-
   io_bbs(BBs,BBIOs),live(BBIOs,Live),kill(Live,Kills),!.
 liveness(Funcs,R) :- maplist(func,Funcs,R).

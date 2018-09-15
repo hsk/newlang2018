@@ -25,7 +25,6 @@ code(bne(A,B,C),bne(A1,B,C))        :- adr(A,A1).
 code(br(A),br(A)).
 code(label(A),label(A)).
 code(if(A,C,D),if(A1,C1,D1))        :- adr(A,A1),adrs(C,C1),adrs(D,D1).
-code(prms(Ps),prms(Ps_))            :- prms(Ps,Ps_).
 code(C,_) :- writeln(error:lineScan;code(C)),halt(-1).
 kill1(M,A) :- member(A:V,M),re_match('^%',V),!,
   nb_getval(unused,Regs),nb_linkval(unused,[V|Regs]).
@@ -38,9 +37,9 @@ code1(Code,(Out,Kill),Code_) :-
 
 bb((L,BB),(Lives,Kill),(L,BB1)) :-
   nb_linkval(lives,Lives),maplist(code1,BB,Kill,BB1).
-func((N,BBs),(_,Kills),(N,Rs,[(N1,[enter(Size,RRs)|Cs])|BBs1])) :-
+func((N,Ps,BBs),(_,Kills),(N,Rs,[(N1,[enter(Size,RRs),prms(Ps_)|Cs])|BBs1])) :-
   regs(Regs),nb_linkval(unused,Regs),
-  nb_linkval(counter,0),nb_linkval(m,[]),
+  nb_linkval(counter,0),nb_linkval(m,[]),prms(Ps,Ps_),
   maplist(bb,BBs,Kills,[(N1,Cs)|BBs1]),nb_getval(counter,Size),
   nb_getval(m,M),
   regs2(Regs2),include([R]>>member(_:R,M),Regs2,Rs),reverse(Rs,RRs).

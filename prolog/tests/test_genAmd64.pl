@@ -1,13 +1,13 @@
-:- use_module('../emit.pl').
-:- begin_tests(emit).
+:- use_module('../genAmd64.pl').
+:- begin_tests(genAmd64).
   test('write') :-
-    emit:open('a.s'),
-    emit:asm('test'),
-    emit:close(),
-    emit:readfile('a.s','test\n').
-  test(emit1) :-
+    genAmd64:open('a.s'),
+    genAmd64:emit('test'),
+    genAmd64:close(),
+    genAmd64:readfile('a.s','test\n').
+  test(genAmd641) :-
     % 1を出力するプログラム
-    emit('a.s', [
+    genAmd64('a.s', [
       ('main',[],[
         ('.bb1',[
           mov('$1', '%rdi'),
@@ -18,5 +18,5 @@
     ]),
     shell('gcc -static -o a a.s lib/lib.c'),
     shell('./a>a.txt; echo 1 | diff a.txt -').
-:- end_tests(emit).
+:- end_tests(genAmd64).
 :- run_tests,halt; halt(-1).
