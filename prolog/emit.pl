@@ -12,7 +12,7 @@ code(mov(A,B)) :-       (re_match('^[%$]',A);re_match('^%',B)),!,
 code(mov(A,B)) :-       asm('\tmov ~w,%rax',[A]),
                         asm('\tmov %rax,~w',[B]).
 code(enter(Size,Rs)) :- length(Rs,L),Align is (L mod 2)*8,
-                        align(-Size+Align,16,S),S1 is S - Align,
+                        align(Size+Align,16,S),S1 is S - Align,
                         (S1=0;asm('\tsubq $~w,%rsp',[S1])),
                         forall(member(R,Rs),asm('\tpush ~w',[R])).
 code(bin(Op,A,B,C)) :-  asm('\tmov ~w,%rax',[A]),
@@ -39,7 +39,7 @@ code(bne(A,B,C)) :-     asm('\tmov ~w,%rax',[A]),
                         asm('\tjmp ~w',[C]).
 code(br(A)) :-          asm('\tjmp ~w',[A]).
 code(label(A)) :-       asm('~w:',[A]).
-code(prms(A)) :-        asm('\t# params ~w',[A]).
+code(prms(A)) :-        maplist(code,A).
 code(E) :-              writeln(error:emit;code(E)),halt.
 bb((L,Cs)) :-           asm('~w:',[L]),forall(member(C,Cs),code(C)),!.
 func((Name,Rs,BBs)) :-  asm('\t.globl ~w',[Name]),

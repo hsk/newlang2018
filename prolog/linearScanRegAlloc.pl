@@ -5,16 +5,15 @@ adr(A,V) :- atom(A),nb_getval(m,M),member(A:V,M),!.
 adr(A,A) :- atom(A),re_match('^[%$1-9]',A),!.
 adr(A,N) :- atom(A),nb_getval(unused,[N|Regs]),!,nb_linkval(unused,Regs),
             nb_getval(m,M),nb_linkval(m,[A:N|M]).
-adr(A,N) :- atom(A),!,nb_getval(counter,C),C1 is C-8,nb_linkval(counter,C1),
-            format(atom(N),'~w(%rbp)',[C1]),
+adr(A,N) :- atom(A),!,nb_getval(counter,C),C1 is C+8,nb_linkval(counter,C1),
+            format(atom(N),'-~w(%rbp)',[C1]),
             nb_getval(m,M),nb_linkval(m,[A:N|M]).
 adr(A,A).
 adrs(A,A1) :- maplist(adr,A,A1).
-prms(Ps,Ps_) :- regp(Regp),length(Regp,L),
-                findall(P:R,(nth0(I,Ps,P),nth0(I,Regp,R)),M),
-                findall(P:R,(nth0(I,Ps,P),I>=L,C is (I-L+2)*8,atom_concat(C,'(%rbp)',R)),M2),
-                append(M,M2,M3),nb_getval(m,M4),union(M3,M4,M5),
-                nb_linkval(m,M5),maplist([_:A1,A1]>>!,M3,Ps_).
+prms(Ps,[]) :- regp(Regp),length(Regp,L),
+               findall(P:R,(nth0(I,Ps,P),nth0(I,Regp,R)),M),
+               findall(P:R,(nth0(I,Ps,P),I>=L,C is (I-L+2)*8,atom_concat(C,'(%rbp)',R)),M2),
+               append(M,M2,M3),nb_getval(m,M4),union(M3,M4,M5),nb_linkval(m,M5).
 getPush(Cs) :- nb_getval(lives,Lives),nb_getval(m,M),regp2(Rs),
                findall(R,(member(A,Lives),member(A:R,M),member(R,Rs)),Cs1),
                list_to_set(Cs1,Cs).
@@ -46,4 +45,4 @@ func((N,BBs),(_,Kills),(N,Rs,[(N1,[enter(Size,RRs)|Cs])|BBs1])) :-
   nb_getval(m,M),
   regs2(Regs2),include([R]>>member(_:R,M),Regs2,Rs),reverse(Rs,RRs).
 
-linearScanRegAlloc(Fs,Fs_) :- collect(Fs,Lives),maplist(func,Fs,Lives,Fs_).
+linearScanRegAlloc(Fs,Fs_) :- liveness(Fs,Lives),maplist(func,Fs,Lives,Fs_).
