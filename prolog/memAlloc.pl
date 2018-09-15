@@ -24,7 +24,7 @@ code(if(A,C,D),if(A1,C1,D1))        :- adr(A,A1),adrs(C,C1),adrs(D,D1).
 code(C,_) :- writeln(error:memAlloc;code(C)),halt(-1).
 
 bb((L,BB),(L,BB1)) :- maplist(code,BB,BB1).
-func((N,Ps,BBs),(N,[],[(N1,[enter(Size,[]),prms(Ps_)|Cs])|BBs1])) :-
+func((N,Ps,BBs),(N,Ps_,[(N1,[enter(Size,[])|Cs])|BBs1])) :-
   nb_linkval(counter,0),prms(Ps,Ps_),
   maplist(bb,BBs,[(N1,Cs)|BBs1]),nb_getval(counter,Size).
 

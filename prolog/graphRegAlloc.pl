@@ -32,11 +32,11 @@ code1(Code,(Out,Kill),Code_) :-
 
 bb((L,BB),(Lives,Kill),(L,BB1)) :-
   nb_linkval(lives,Lives),maplist(code1,BB,Kill,BB1).
-func((N,_,BBs),(M1,Kills),(N,Rs,[(N1,[enter(Size,RRs)|Cs])|BBs1])) :-
+func((N,_,BBs),(M1,Kills),(N,[],[(N1,[enter(Size,Rs)|Cs])|BBs1])) :-
   nb_linkval(c,0),nb_linkval(m,M1),
   maplist(bb,BBs,Kills,[(N1,Cs)|BBs1]),nb_getval(c,Size),
   nb_getval(m,M),
-  regs2(Regs2),include([R]>>member(_:R,M),Regs2,Rs),reverse(Rs,RRs).
+  regs2(Regs2),include([R]>>member(_:R,M),Regs2,Rs).
 
 alloc_m(A:I,(Regs,I2R,M),(Regs,I2R,M2)) :- member(I:R,I2R),!,(member(A:_,M)->M2=M;M2=[A:R|M]).
 alloc_m(A:I,(Regs,I2R,M),(Regs,[I:R|I2R],M)) :- member(A:R,M),!.

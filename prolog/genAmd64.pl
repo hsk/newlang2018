@@ -14,7 +14,8 @@ code(mov(A,B)) :-       emit('\tmov ~w,%rax',[A]),
 code(enter(Size,Rs)) :- length(Rs,L),Align is (L mod 2)*8,
                         align(Size+Align,16,S),S1 is S - Align,
                         (S1=0;emit('\tsubq $~w,%rsp',[S1])),
-                        forall(member(R,Rs),emit('\tpush ~w',[R])).
+                        reverse(Rs,RRs),forall(member(R,RRs),emit('\tpush ~w',[R])),
+                        nb_setval(leave,Rs).
 code(bin(Op,A,B,C)) :-  emit('\tmov ~w,%rax',[A]),
                         emit('\t~w ~w,%rax',[Op,B]),
                         emit('\tmov %rax,~w',[C]).
@@ -39,16 +40,16 @@ code(bne(A,B,C)) :-     emit('\tmov ~w,%rax',[A]),
                         emit('\tjmp ~w',[C]).
 code(br(A)) :-          emit('\tjmp ~w',[A]).
 code(label(A)) :-       emit('~w:',[A]).
-code(prms(A)) :-        maplist(code,A).
 code(E) :-              writeln(error:emit;code(E)),halt.
 bb1((L,Cs)) :-           emit('~w:',[L]),forall(member(C,Cs),code(C)),!.
-func((Name,Rs,BBs)) :-  emit('\t.globl ~w',[Name]),
+func((Name,Ps,BBs)) :-  emit('\t.globl ~w',[Name]),
                         emit('~w:',[Name]),
                         emit('\tpushq\t%rbp'),
                         emit('\tmovq\t%rsp,%rbp'),
+                        maplist(code,Ps),
                         nb_linkval(name,Name),forall(member(BB,BBs),bb1(BB)),
                         emit('.end.~w:',[Name]),
-                        forall(member(A,Rs),emit('\tpop ~w',[A])),
+                        nb_getval(leave,Leave),forall(member(R,Leave),emit('\tpop ~w',R)),
                         emit('\tleave'),
                         emit('\tret').
 genAmd64(File,Ls) :-    open(File),forall(member(L,Ls),func(L)),close().
