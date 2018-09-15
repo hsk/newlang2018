@@ -1,4 +1,4 @@
-:- use_module([genCode,graphRegAlloc,linearScanRegAlloc,emit]).
+:- use_module([genCode,memAlloc,graphRegAlloc,linearScanRegAlloc,emit]).
 
 expr(I,I) :- integer(I),!.
 expr(A,A) :- atom(A),!.
@@ -15,10 +15,10 @@ parse(Fs,Fs_) :- maplist(func,Fs,Fs_),!.
 parseFile(File,Fs_) :- read_file_to_terms(File,Fs,[]),parse(Fs,Fs_).
 
 compile(Alloc,File) :- parseFile(File,P),genCode(P,E),
-                       call(Alloc,E,M), emit('a.s',M),
-                       shell('gcc -static -o a a.s lib/lib.c').
+                       call(Alloc,E,M), emit('a.s',M).
 
-main(['-O1',Src]) :- compile(regAlloc,Src),shell('./a').
-main([Src]) :- compile(linearScanRegAlloc,Src),shell('./a').
+main([Src]) :- compile(memAlloc,Src).
+main(['-O1',Src]) :- compile(linearScanRegAlloc,Src).
+main(['-O2',Src]) :- compile(regAlloc,Src).
 :- current_prolog_flag(argv,Argv),main(Argv).
 :- halt.
