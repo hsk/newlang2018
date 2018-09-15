@@ -26,8 +26,7 @@ kill_bb((Out,Inp),(Lives,Kills),(Lives2,[(Ou2,Dies)|Kills])) :-
   subtract(Lives1,Out,Lives2), % 生まれる前は生きてない
   !.
 
-imm1(R) :- atom(R),\+re_match('^[$%]',R).
-imm(Is,Is_) :- include(imm1,Is,Is_).
+imm(Is,Is_) :- findall(R,(member(R,Is),atom(R),\+re_match('^[$%]',R)),Is_).
 code(prms(Ps),(Ps,[])).
 code(mov(I,R),([R],Is)) :- imm([I],Is).
 code(bin(_,I1,I2,R),([R],Is)) :- imm([I1,I2],Is).

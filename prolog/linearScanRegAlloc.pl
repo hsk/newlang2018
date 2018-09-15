@@ -16,9 +16,8 @@ prms(Ps,Ps_) :- regp(Regp),length(Regp,L),
                 append(M,M2,M3),nb_getval(m,M4),union(M3,M4,M5),
                 nb_linkval(m,M5),maplist([_:A1,A1]>>!,M3,Ps_).
 getPush(Cs) :- nb_getval(lives,Lives),nb_getval(m,M),regp2(Rs),
-               foldl(getPush1(M,Rs),Lives,[],Cs).
-getPush1(M,Rs,A,Cs,[R|Cs]) :- member(A:R,M),member(R,Rs),\+member(R,Cs).
-getPush1(_,_,_,Cs,Cs).
+               findall(R,(member(A,Lives),member(A:R,M),member(R,Rs)),Cs1),
+               list_to_set(Cs1,Cs).
 code(mov(A,B),mov(A1,B1))           :- adr(A,A1),adr(B,B1).
 code(bin(O,A,B,C),bin(O,A1,B1,C1))  :- adr(A,A1),adr(B,B1),adr(C,C1).
 code(call(A,B,C),call(A,B1,C1,Cs))  :- getPush(Cs),adrs(B,B1),adr(C,C1).
