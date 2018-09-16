@@ -3,14 +3,14 @@ resetid :- nb_setval(idcounter,0).
 genid(C) :- nb_getval(idcounter,C),C1 is C+1,nb_setval(idcounter,C1).
 genid(S,S1) :- nb_getval(idcounter,C),C1 is C+1,nb_setval(idcounter,C1),atom_concat(S,C,S1).
 
-init_bbs(Lbl)  :- nb_linkval(lbl,Lbl),nb_linkval(cs,[]),
-                  nb_linkval(bbs,(H1,H1)).
+init_bbs(Lbl)  :- nb_setval(lbl,Lbl),nb_setval(cs,[]),
+                  nb_setval(bbs,(H1,H1)).
 add(C)         :- nb_getval(cs,Cs),
                   (Cs=[L|_],member(L,[call(_,_),br(_),bne(_,_,_),ret(_)])
-                  ;nb_linkval(cs,[C|Cs])).
+                  ;nb_setval(cs,[C|Cs])).
 label(Lbl)     :- nb_getval(lbl,Lb2),nb_getval(cs,Cs),reverse(Cs,Cs_),
-                  nb_getval(bbs,(BBs,[(Lb2,Cs_)|H1])),nb_linkval(bbs,(BBs,H1)),
-                  nb_linkval(lbl,Lbl),nb_linkval(cs,[]).
+                  nb_getval(bbs,(BBs,[(Lb2,Cs_)|H1])),nb_setval(bbs,(BBs,H1)),
+                  nb_setval(lbl,Lbl),nb_setval(cs,[]).
 get_bbs(BBs)   :- nb_getval(lbl,Lbl),nb_getval(cs,Cs),reverse(Cs,Cs_),
                   nb_getval(bbs,(BBs,[(Lbl,Cs_)])).
 

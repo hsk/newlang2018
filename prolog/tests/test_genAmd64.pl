@@ -1,10 +1,11 @@
 :- use_module('../genAmd64.pl').
 :- begin_tests(genAmd64).
+  readfile(File,A) :- read_file_to_string(File,Str,[]),atom_string(A,Str).
   test('write') :-
     genAmd64:open('a.s'),
     genAmd64:emit('test'),
     genAmd64:close(),
-    genAmd64:readfile('a.s','test\n').
+    readfile('a.s','test\n').
   test(genAmd641) :-
     % 1を出力するプログラム
     genAmd64('a.s', [
