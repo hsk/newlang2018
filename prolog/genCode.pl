@@ -18,12 +18,12 @@ expr(I,$I) :-           integer(I),!.
 expr(E,_) :-            throw(genCode(expr(E))).
 stmt(if(A,C,D)) :-      genid(then,Then),genid(else,Else),
                         expr(A,R1),add(bne(R1,Then,Else)),genid(cont,Cont),
-                        bb(Then,foreach(member(S,C),stmt(S)),br(Cont)),
-                        bb(Else,foreach(member(S,D),stmt(S)),br(Cont)),label(Cont).
+                        bb(Then,forall(member(S,C),stmt(S)),br(Cont)),
+                        bb(Else,forall(member(S,D),stmt(S)),br(Cont)),label(Cont).
 stmt(while(A,B)) :-     genid(while,While),genid(then,Then),genid(cont,Cont),
                         bb(While,expr(A,R1),bne(R1,Then,Cont)),
-                        bb(Then,foreach(member(S,B),stmt(S)),br(While)),label(Cont).
+                        bb(Then,forall(member(S,B),stmt(S)),br(While)),label(Cont).
 stmt(ret(E)) :-         expr(E,R),add(ret(R)).
 stmt(E) :-              expr(E,_).
-func(N:A=B,N:A=BBs) :-  genid(enter,E),initBBs(E),foreach(member(S,B),stmt(S)),getBBs(BBs).
+func(N:A=B,N:A=BBs) :-  genid(enter,E),initBBs(E),forall(member(S,B),stmt(S)),getBBs(BBs).
 genCode(P,R) :-         resetid,maplist(func,P,R),!.

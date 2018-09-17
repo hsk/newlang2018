@@ -32,14 +32,16 @@ gen_edges(G,G2) :- foldl(gen_edges_bb,G,[],G2),!.
 prms(Ps,Ps_) :- regp(Regp),length(Regp,L),
                 findall(P:R,(nth0(I,Ps,P),nth0(I,Regp,R)),M),
                 findall(P:R,(nth0(I,Ps,P),I>=L,C is (I-L+2)*8,atom_concat(C,'(%rbp)',R)),M2),
-                append(M,M2,M3),maplist([_:A1,A1]>>!,M3,Ps_).
+                append(M,M2,M3),maplist(prms1,M3,Ps_).
+prms1(_:A1,A1).
 alloc_m(A:I,(Regs,I2R,M),(Regs,I2R,M2)) :- member(I:R,I2R),!,(member(A:_,M)->M2=M;M2=[A:R|M]).
 alloc_m(A:I,(Regs,I2R,M),(Regs,[I:R|I2R],M)) :- member(A:R,M),!.
 alloc_m(A:I,([R|Regs],I2R,M),(Regs,[I:R|I2R],[A:R|M])) :- !.
 alloc_m(_,([],I2R,M),([],I2R,M)).
+alloc_func1(Cs,P,A,P:A,I:A) :- member(P:I,Cs).
 alloc_func(_:Ps=_,(Live,Kills),(M1,Kills)) :-
   gen_edges(Live,Edges),neighbors(Edges,Ns),coloring(Ns,Cs),
-  (prms(Ps,Ps_),!),maplist([P,A,P:A,I:A]>>(member(P:I,Cs),!),Ps,Ps_,M,I2R),
+  (prms(Ps,Ps_),!),maplist(alloc_func1(Cs),Ps,Ps_,M,I2R),
   regp(Regp),subtract(Regp,Ps_,Regp2),regs(Regs),union(Regs,Regp2,Regs2),
   foldl(alloc_m,Cs,(Regs2,I2R,M),(_,_,M1)).
 alloc(Fs,Allocs) :- liveness(Fs,Lives),maplist(alloc_func,Fs,Lives,Allocs).

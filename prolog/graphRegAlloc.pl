@@ -23,5 +23,5 @@ bb(L:BB,(Lives,Kill),L:BB1) :- nb_setval(lives,Lives),maplist(code1,BB,Kill,BB1)
 func(N:_=BBs,(M1,Kills),N:[]=[N1:[enter(Size,Rs)|Cs]|BBs1]) :-
   nb_setval(c,0),nb_setval(m,M1),
   maplist(bb,BBs,Kills,[N1:Cs|BBs1]),nb_getval(c,Size),
-  nb_getval(m,M),regs2(Regs2),include([R]>>member(_:R,M),Regs2,Rs).
+  nb_getval(m,M),regs2(Regs2),findall(R,(member(R,Regs2),member(_:R,M)),Rs).
 regAlloc(Fs,Fs_) :- alloc(Fs,Allocs),maplist(func,Fs,Allocs,Fs_).
