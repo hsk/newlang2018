@@ -33,12 +33,12 @@ code1(Code,(Out,Kill),Code_) :-
   findall(U,(member(A,Kill),member(A:U,M),re_match('^%',U)),Us2,Us1),
   nb_setval(unused,Us2).
 
-bb((L,BB),(Lives,Kill),(L,BB1)) :-
+bb(L:BB,(Lives,Kill),L:BB1) :-
   nb_setval(lives,Lives),maplist(code1,BB,Kill,BB1).
-func((N,Ps,BBs),(_,Kills),(N,[],[(N1,[enter(Size,Rs)|Cs])|BBs1])) :-
+func(N:Ps=BBs,(_,Kills),N:[]=[N1:[enter(Size,Rs)|Cs]|BBs1]) :-
   regs(Regs),nb_setval(unused,Regs),
   nb_setval(size,0),nb_setval(m,[]),prms(Ps),
-  maplist(bb,BBs,Kills,[(N1,Cs)|BBs1]),nb_getval(size,Size),
+  maplist(bb,BBs,Kills,[N1:Cs|BBs1]),nb_getval(size,Size),
   regs2(Regs2),nb_getval(m,M),findall(R,(member(R,Regs2),member(_:R,M)),Rs).
 
 linearScanRegAlloc(Fs,Fs_) :- liveness(Fs,Lives),maplist(func,Fs,Lives,Fs_).

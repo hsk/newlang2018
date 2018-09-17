@@ -22,7 +22,7 @@ gen_edges_code((Out,Inp),(Live,Es),(Live3,Es3)) :-
   foldl(gen_edges3,Out,(Es1,Live),(Es2,Live2)),
   union(Inp,Live2,InpLive2),add(Es2,InpLive2,Es3),
   union(Inp,Live2,Live3).
-gen_edges_bb((_,BB),Es,Es2) :-
+gen_edges_bb(_:BB,Es,Es2) :-
   subtract(BB,[o=Out,bb=Block],_),
   add(Es,Out,Es1),reverse(Block,RBlock),
   foldl(gen_edges_code,RBlock,(Out,Es1),(_,Es2)).
@@ -37,7 +37,7 @@ alloc_m(A:I,(Regs,I2R,M),(Regs,I2R,M2)) :- member(I:R,I2R),!,(member(A:_,M)->M2=
 alloc_m(A:I,(Regs,I2R,M),(Regs,[I:R|I2R],M)) :- member(A:R,M),!.
 alloc_m(A:I,([R|Regs],I2R,M),(Regs,[I:R|I2R],[A:R|M])) :- !.
 alloc_m(_,([],I2R,M),([],I2R,M)).
-alloc_func((_,Ps,_),(Live,Kills),(M1,Kills)) :-
+alloc_func(_:Ps=_,(Live,Kills),(M1,Kills)) :-
   gen_edges(Live,Edges),neighbors(Edges,Ns),coloring(Ns,Cs),
   (prms(Ps,Ps_),!),maplist([P,A,P:A,I:A]>>(member(P:I,Cs),!),Ps,Ps_,M,I2R),
   regp(Regp),subtract(Regp,Ps_,Regp2),regs(Regs),union(Regs,Regp2,Regs2),

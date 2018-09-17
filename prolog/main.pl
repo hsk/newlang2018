@@ -10,7 +10,7 @@ expr(E,_) :- writeln(error:E),halt.
 stmt(return(E),ret(E_)) :- expr(E,E_).
 stmt(if(E,S1,S2),if(E_,S1_,S2_)) :- expr(E,E_),maplist(stmt,S1,S1_),maplist(stmt,S2,S2_).
 stmt(S,S_) :- expr(S,S_).
-func(NP=B,(N,P,B_)) :- compound_name_arguments(NP,N,P),maplist(stmt,B,B_).
+func(NP=B,N:P=B_) :- compound_name_arguments(NP,N,P),maplist(stmt,B,B_).
 parse(Fs,Fs_) :- maplist(func,Fs,Fs_),!.
 parseFile(File,Fs_) :- read_file_to_terms(File,Fs,[]),parse(Fs,Fs_).
 

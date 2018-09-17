@@ -23,10 +23,10 @@ code1(Code,(Out,Kill),Code_) :-
   nb_getval(lives,Lives),subtract(Lives,Kill,Lives1),nb_setval(lives,Lives1),
   code(Code,Code_),!,
   union(Lives1,Out,Lives2),nb_setval(lives,Lives2).
-bb((L,BB),(Lives,Kill),(L,BB1)) :-
+bb(L:BB,(Lives,Kill),L:BB1) :-
   nb_setval(lives,Lives),maplist(code1,BB,Kill,BB1).
-func((N,_,BBs),(M1,Kills),(N,[],[(N1,[enter(Size,Rs)|Cs])|BBs1])) :-
+func(N:_=BBs,(M1,Kills),N:[]=[N1:[enter(Size,Rs)|Cs]|BBs1]) :-
   nb_setval(c,0),nb_setval(m,M1),
-  maplist(bb,BBs,Kills,[(N1,Cs)|BBs1]),nb_getval(c,Size),
+  maplist(bb,BBs,Kills,[N1:Cs|BBs1]),nb_getval(c,Size),
   nb_getval(m,M),regs2(Regs2),include([R]>>member(_:R,M),Regs2,Rs).
 regAlloc(Fs,Fs_) :- alloc(Fs,Allocs),maplist(func,Fs,Allocs,Fs_).

@@ -11,17 +11,17 @@
 
   test(genCode) :-
     genCode([
-      ('main',[],[
-        mov(100,'a'),
-        mov(20,'b'),
-        mov(3,'c'),
-        call('printInt',[call('add',['a','b','c'])]),
-        mov(0,'e'),
-        ret('e')
-      ]),
-      ('add',['a','b','c'],[
-        ret(bin(add,'a',bin(add,'b','c')))
-      ])
+      main:[]=[
+        mov(100,a),
+        mov(20,b),
+        mov(3,c),
+        call(printInt,[call(add,[a,b,c])]),
+        mov(0,e),
+        ret(e)
+      ],
+      add:[a,b,c]=[
+        ret(bin(add,a,bin(add,b,c)))
+      ]
     ],P),
     regAlloc(P,M),
     genAmd64('a.s',M),

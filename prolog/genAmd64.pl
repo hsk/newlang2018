@@ -36,8 +36,8 @@ code(call(N,B,A,Cs)) :- length(Cs,CsLen),CsAlign is CsLen mod 2,
                         reverse(Cs,RCs),forall(member(C,RCs),emit('\tpop ~w',[C])),
                         emit('\tmov %rax,~w',[A]).
 code(E)              :- writeln(error:emit;code(E)),halt.
-bb((L,Cs))           :- emit('~w:',[L]),forall(member(C,Cs),code(C)),!.
-func((Name,Ps,BBs))  :- emit('\t.globl ~w',[Name]),
+bb(L:Cs)             :- emit('~w:',[L]),forall(member(C,Cs),code(C)),!.
+func(Name:Ps=BBs)    :- emit('\t.globl ~w',[Name]),
                         emit('~w:',[Name]),
                         emit('\tpushq\t%rbp'),
                         emit('\tmovq\t%rsp,%rbp'),
