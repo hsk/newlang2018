@@ -1,25 +1,23 @@
 :- use_module([genCode,memAlloc,graphRegAlloc,linearScanRegAlloc,genAmd64]).
-
 expr(I,I) :- integer(I),!.
 expr(A,A) :- atom(A),!.
 expr(E1+E2,bin(addq,E1_,E2_)) :- expr(E1,E1_),expr(E2,E2_).
 expr(E1-E2,bin(subq,E1_,E2_)) :- expr(E1,E1_),expr(E2,E2_).
 expr(A=E,mov(E_,A)) :- atom(A),expr(E,E_).
 expr(AEs,call(A,Es_)) :- compound_name_arguments(AEs,A,Es),maplist(expr,Es,Es_).
-expr(E,_) :- writeln(error:E),halt.
+expr(E,_) :- throw(main(expr(E))).
 stmt(return(E),ret(E_)) :- expr(E,E_).
 stmt(if(E,S1,S2),if(E_,S1_,S2_)) :- expr(E,E_),maplist(stmt,S1,S1_),maplist(stmt,S2,S2_).
+stmt(while(E,S),while(E_,S_)) :- expr(E,E_),maplist(stmt,S,S_).
 stmt(S,S_) :- expr(S,S_).
 func(NP=B,N:P=B_) :- compound_name_arguments(NP,N,P),maplist(stmt,B,B_).
 parse(Fs,Fs_) :- maplist(func,Fs,Fs_),!.
 parseFile(File,Fs_) :- read_file_to_terms(File,Fs,[]),parse(Fs,Fs_).
-
-compile(Alloc,File) :- parseFile(File,P),genCode(P,E),call(Alloc,E,M), genAmd64('a.s',M).
-
+compile(Alloc,File) :- parseFile(File,P),genCode(P,E),call(Alloc,E,M),genAmd64('a.s',M).
 main([Src])       :- compile(memAlloc,Src).
 main(['-O1',Src]) :- compile(linearScanRegAlloc,Src).
 main(['-O2',Src]) :- compile(regAlloc,Src).
-main :- current_prolog_flag(argv,Argv),main(Argv),halt.
+main :- current_prolog_flag(argv,Argv),catch(main(Argv),E,(writeln(E),halt(-1))),halt.
 comp :- current_prolog_flag(os_argv,OS),current_prolog_flag(argv,Argv),
         subtract(OS,Argv,OS2),member('-c',OS2).
 :- comp; main.

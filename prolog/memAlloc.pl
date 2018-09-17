@@ -1,6 +1,6 @@
 :- module(memAlloc,[memAlloc/2]).
 regp([\rdi,\rsi,\rdx,\rcx,\r8,\r9]).
-adr(A,A) :- ($_=A;\_=A;[_]=A),!.
+adr(A,A) :- ($_=A;\_=A;ptr(_,_)=A),!.
 adr(A,N) :- nb_getval(m,M),member(A:N,M),!.
 adr(A,N) :- nb_getval(counter,C),C1 is C+8,nb_setval(counter,C1),
             N=ptr(\rbp,-C1),nb_getval(m,M),nb_setval(m,[A:N|M]).
@@ -17,7 +17,7 @@ code(ret(A),ret(A1))                :- adr(A,A1).
 code(bne(A,B,C),bne(A1,B,C))        :- adr(A,A1).
 code(br(A),br(A)).
 code(if(A,C,D),if(A1,C1,D1))        :- adr(A,A1),adrs(C,C1),adrs(D,D1).
-code(C,_) :- writeln(error:memAlloc;code(C)),halt(-1).
+code(C,_) :- throw(memAlloc(code(C))).
 bb(L:BB,L:BB1) :- maplist(code,BB,BB1).
 func(N:Ps=BBs,N:Ps_=[N1:[enter(Size,[])|Cs]|BBs1]) :-
   nb_setval(counter,0),prms(Ps,Ps_),

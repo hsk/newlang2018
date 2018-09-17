@@ -4,9 +4,9 @@
 :- begin_tests(genCode).
   test(genid) :-
     resetid,
-    genid(a,a0),
-    genid(a,a1),
-    genid(a,a2),
+    genid(a,'.a0'),
+    genid(a,'.a1'),
+    genid(a,'.a2'),
     resetid.
 
   test(genCode) :-

@@ -29,7 +29,7 @@ io_code(ret(I),([],Is)) :- io_imm([I],Is).
 io_code(br(_),([],[])).
 io_code(bne(R,_,_),([],Is)) :- io_imm([R],Is).
 io_code(call(_,Is,R),([R],Is_)) :- io_imm(Is,Is_).
-io_code(Ir,_) :- writeln(error:liveness(io_code(code(Ir)))),halt(-1).
+io_code(Ir,_) :- throw(liveness(io_code(code(Ir)))).
 io_br(br(L),[L]).
 io_br(bne(_,L1,L2),[L1,L2]).
 io_bb_br(BB,Br) :- last(BB,B),io_br(B,Br).

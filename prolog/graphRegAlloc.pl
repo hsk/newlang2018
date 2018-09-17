@@ -1,7 +1,6 @@
 :- module(graphRegAlloc,[regAlloc/2]).
 :- use_module([liveness,graph]).
-
-adr(A,A) :- (\_=A;$_=A;[_]=A),!.
+adr(A,A) :- (\_=A;$_=A;ptr(_,_)=A),!.
 adr(A,N) :- nb_getval(m,M),member(A:N,M),!.
 adr(A,N) :- nb_getval(c,C),C1 is C+8,nb_setval(c,C1),
             N=ptr(\rbp,-C1),nb_getval(m,M),nb_setval(m,[A:N|M]).
@@ -16,7 +15,7 @@ code(ret(A),ret(A1))                :- adr(A,A1).
 code(bne(A,B,C),bne(A1,B,C))        :- adr(A,A1).
 code(br(A),br(A)).
 code(if(A,C,D),if(A1,C1,D1))        :- adr(A,A1),adrs(C,C1),adrs(D,D1).
-code(C,_) :- writeln(error:regAlloc;code(C)),halt(-1).
+code(C,_) :- throw(regAlloc(code(C))).
 code1(Code,(Out,Kill),Code_) :-
   nb_getval(lives,Lives),subtract(Lives,Kill,Lives1),nb_setval(lives,Lives1),
   code(Code,Code_),!,union(Lives1,Out,Lives2),nb_setval(lives,Lives2).
