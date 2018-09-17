@@ -6,11 +6,11 @@ adr(A,N) :- nb_getval(m,M),member(A:N,M),!.
 adr(A,N) :- nb_getval(unused,[N|Us]),!,nb_setval(unused,Us),
             nb_getval(m,M),nb_setval(m,[A:N|M]).
 adr(A,N) :- nb_getval(size,C),C1 is C+8,nb_setval(size,C1),
-            N=([\rbp-C1]),nb_getval(m,M),nb_setval(m,[A:N|M]).
+            N=ptr(\rbp,-C1),nb_getval(m,M),nb_setval(m,[A:N|M]).
 adrs(A,A1) :- maplist(adr,A,A1).
 prms(Ps)   :- regp(Regp),length(Regp,L),
               findall(P:R,(nth0(I,Ps,P),nth0(I,Regp,R)),M),
-              findall(P:R,(nth0(I,Ps,P),I>=L,C is (I-L+2)*8,R=[\rbp+C]),M2),
+              findall(P:R,(nth0(I,Ps,P),I>=L,C is (I-L+2)*8,R=ptr(\rbp,C)),M2),
               append(M,M2,M3),nb_getval(m,M4),union(M3,M4,M5),nb_setval(m,M5).
 getPush(Cs) :- nb_getval(lives,Lives),nb_getval(m,M),regp2(Rs),
                findall(R,(member(A,Lives),member(A:R,M),member(R,Rs)),Cs1),
@@ -21,7 +21,6 @@ code(call(A,B,C),call(A,B1,C1,Cs))  :- getPush(Cs),adrs(B,B1),adr(C,C1).
 code(ret(A),ret(A1))                :- adr(A,A1).
 code(bne(A,B,C),bne(A1,B,C))        :- adr(A,A1).
 code(br(A),br(A)).
-code(label(A),label(A)).
 code(if(A,C,D),if(A1,C1,D1))        :- adr(A,A1),adrs(C,C1),adrs(D,D1).
 code(C,_) :- writeln(error:lineScan;code(C)),halt(-1).
 code1(Code,(Out,Kill),Code_) :-
