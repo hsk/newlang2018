@@ -6,9 +6,9 @@
     regAlloc([
       main:[]=[
         bb1:[
-          mov('$1',a),
-          call(printInt,[a],'%rax'),
-          mov('$0',b),
+          mov($1,a),
+          call(printInt,[a],\rax),
+          mov($0,b),
           ret(b)
         ]
       ]

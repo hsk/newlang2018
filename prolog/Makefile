@@ -19,7 +19,13 @@ test:
 	swipl tests/test_genAmd64.pl
 	swipl tests/test_graphRegAlloc.pl
 	swipl tests/test_genCode.pl
-	make clean
+
+	./mcc tests/b.mc
+	time -p gcc a.s -static lib/lib.c -o a; ./a
+	./mcc -O1 tests/b.mc
+	time -p gcc a.s -static lib/lib.c -o a; ./a
+	./mcc -O2 tests/b.mc
+	time -p gcc a.s -static lib/lib.c -o a; ./a
 	@echo "test ok"
 clean:
 	rm -rf a.out a a.s a.txt mcc

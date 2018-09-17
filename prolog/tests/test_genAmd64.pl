@@ -5,11 +5,11 @@
     % 1を出力するプログラム
     genAmd64('a.s', [
       main:[]=[
-        '.bb1':[
+        bb1:[
           enter(0,[]),
-          mov('$1', '%rdi'),
-          call(printInt,[],'%rax',[]),
-          ret('$0')
+          mov($1, \rdi),
+          call(printInt,[],\rax,[]),
+          ret($0)
         ]
       ]
     ]),

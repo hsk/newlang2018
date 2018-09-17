@@ -1,11 +1,10 @@
 :- module(graphRegAlloc,[regAlloc/2]).
 :- use_module([liveness,graph]).
 
-adr(A,A) :- re_match('^[%$1-9]',A),!.
+adr(A,A) :- (\_=A;$_=A;[_]=A),!.
 adr(A,N) :- nb_getval(m,M),member(A:N,M),!.
-adr(A,N) :- nb_getval(c,C),C1 is C-8,nb_setval(c,C1),
-            format(atom(N),'~w(%rbp)',[C1]),
-            nb_getval(m,M),nb_setval(m,[A:N|M]).
+adr(A,N) :- nb_getval(c,C),C1 is C+8,nb_setval(c,C1),
+            N=[\rbp+C1],nb_getval(m,M),nb_setval(m,[A:N|M]).
 adrs(A,A1) :- maplist(adr,A,A1).
 getPush(Cs)  :- nb_getval(lives,Lives),nb_getval(m,M),regp2(Rs),
                 findall(R,(member(A,Lives),member(A:R,M),member(R,Rs)),Cs1),
@@ -21,10 +20,8 @@ code(if(A,C,D),if(A1,C1,D1))        :- adr(A,A1),adrs(C,C1),adrs(D,D1).
 code(C,_) :- writeln(error:regAlloc;code(C)),halt(-1).
 code1(Code,(Out,Kill),Code_) :-
   nb_getval(lives,Lives),subtract(Lives,Kill,Lives1),nb_setval(lives,Lives1),
-  code(Code,Code_),!,
-  union(Lives1,Out,Lives2),nb_setval(lives,Lives2).
-bb(L:BB,(Lives,Kill),L:BB1) :-
-  nb_setval(lives,Lives),maplist(code1,BB,Kill,BB1).
+  code(Code,Code_),!,union(Lives1,Out,Lives2),nb_setval(lives,Lives2).
+bb(L:BB,(Lives,Kill),L:BB1) :- nb_setval(lives,Lives),maplist(code1,BB,Kill,BB1).
 func(N:_=BBs,(M1,Kills),N:[]=[N1:[enter(Size,Rs)|Cs]|BBs1]) :-
   nb_setval(c,0),nb_setval(m,M1),
   maplist(bb,BBs,Kills,[N1:Cs|BBs1]),nb_getval(c,Size),
