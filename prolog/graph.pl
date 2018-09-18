@@ -11,22 +11,11 @@ n1(A-B,Ns,[A:[B|As]/Al1,B:[A|Bs]/Bl1|Ns_]) :- subtract(Ns,[A:As/Al,B:Bs/Bl],Ns_)
                              (As=[],Al1=1;Al1 is Al+1),(Bs=[],Bl1=1;Bl1 is Bl+1).
 neighbors(Es,Ns) :- foldl(n1,Es,[],Ns),!.
 
-addEs(X,X,Es,Es) :- member(X-_,Es);member(_-X,Es).
-addEs(X,Y,Es,Es) :- member(X-Y,Es);member(Y-X,Es).
-addEs(X,Y,Es,[X-Y|Es]).
-add(Es,[],Es).
-add(Es,[X|Xs],Es2) :- foldl(addEs(X),Xs,Es,Es_), add(Es_,Xs,Es2).
-gen_edges3(O,(Es,S),(Es1,S1)):- addEs(O,O,Es,Es1),subtract(S,[O],S1).
-gen_edges_code((Out,Inp),(Live,Es),(Live3,Es3)) :-
-  union(Out,Inp,OutInp),add(Es,OutInp,Es1),
-  foldl(gen_edges3,Out,(Es1,Live),(Es2,Live2)),
-  union(Inp,Live2,InpLive2),add(Es2,InpLive2,Es3),
-  union(Inp,Live2,Live3).
-gen_edges_bb(_:BB,Es,Es2) :-
-  subtract(BB,[o=Out,bb=Block],_),
-  add(Es,Out,Es1),reverse(Block,RBlock),
-  foldl(gen_edges_code,RBlock,(Out,Es1),(_,Es2)).
-gen_edges(G,G2) :- foldl(gen_edges_bb,G,[],G2),!.
+addEs(X,Y) :- es(X-Y);es(Y-X);assert(es(X-Y)).
+add(Xs,Ys) :- forall((member(X,Xs),member(Y,Ys),X\=Y),addEs(X,Y)).
+gen_edges_code((Rms,Mks),I1,I3) :- add(I1,Mks),add(Mks,Mks),subtract(I1,Rms,I2),union(I2,Mks,I3).
+gen_edges_bb((I1,Alives)) :- add(I1,I1),foldl(gen_edges_code,Alives,I1,_).
+gen_edges(G,Es) :- dynamic(es/1),maplist(gen_edges_bb,G),findall(E,retract(es(E)),Es).
 
 :- use_module(liveness).
 prms(Ps,Ps_) :- regp(Regp),length(Regp,L),
@@ -39,8 +28,8 @@ alloc_m(A:I,(Regs,I2R,M),(Regs,[I:R|I2R],M)) :- member(A:R,M),!.
 alloc_m(A:I,([R|Regs],I2R,M),(Regs,[I:R|I2R],[A:R|M])) :- !.
 alloc_m(_,([],I2R,M),([],I2R,M)).
 alloc_func1(Cs,P,A,P:A,I:A) :- member(P:I,Cs).
-alloc_func(_:Ps=_,(Live,Kills),(M1,Kills)) :-
-  gen_edges(Live,Edges),neighbors(Edges,Ns),coloring(Ns,Cs),
+alloc_func(_:Ps=_,Alives,(M1,Alives)) :-
+  gen_edges(Alives,Edges),neighbors(Edges,Ns),coloring(Ns,Cs),
   (prms(Ps,Ps_),!),maplist(alloc_func1(Cs),Ps,Ps_,M,I2R),
   regp(Regp),subtract(Regp,Ps_,Regp2),regs(Regs),union(Regs,Regp2,Regs2),
   foldl(alloc_m,Cs,(Regs2,I2R,M),(_,_,M1)).

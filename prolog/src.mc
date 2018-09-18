@@ -11,8 +11,7 @@ main()=[
     a=50000+5000-1000
   ]),
   printInt(a+add(300,20,1)),
-  printInt(sum(10)),
-  return(0)
+  printInt(sum(10))
 ].
 sum(n)=[
   if(n,[return(sum(n-1)+n)],[]),

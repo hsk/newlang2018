@@ -7,9 +7,9 @@ imm(\R,A)            :- format(atom(A),'%~w',[R]).
 imm(ptr(\R,I),A)     :- format(atom(A),'~w(%~w)',[I,R]).
 emit(S)              :- fp(FP),writeln(FP,S).
 emit(S,F)            :- fp(FP),maplist(imm,F,F_),format(FP,S,F_),nl(FP).
-code(mov(A,B))       :- emit('\tmov ~w,~w',[A,\rax]),emit('\tmov ~w,~w',[\rax,B]).
+code(mov(A,B))       :- B=null;(emit('\tmov ~w,~w',[A,\rax]),emit('\tmov ~w,~w',[\rax,B])).
 code(bin(Op,A,B,C))  :- emit('\tmov ~w,~w',[A,\rax]),emit('\t~w ~w,~w',[Op,B,\rax]),
-                        emit('\tmov ~w,~w',[\rax,C]).
+                        code(mov(\rax,C)).
 code(br(A))          :- emit('\tjmp ~w',[A]).
 code(bne(A,B,C))     :- emit('\tmov ~w,~w',[A,\rax]),emit('\tcmp ~w,~w',[$0,\rax]),
                         emit('\tjne ~w',[B]),emit('\tjmp ~w',[C]).
@@ -32,7 +32,7 @@ code(call(N,B,A,Cs)) :- length(Cs,CsLen),CsAlign is CsLen mod 2,
                           Align2 is PsLen*8+Align,
                           (Align2=0;emit('\tadd ~w,~w',[$Align2,\rsp])),
                         reverse(Cs,RCs),forall(member(C,RCs),emit('\tpop ~w',[C])),
-                        emit('\tmov ~w,~w',[\rax,A]).
+                        code(mov(\rax,A)).
 code(E)              :- throw(emit(code(E))).
 bb(L:Cs)             :- emit('~w:',[L]),forall(member(C,Cs),code(C)),!.
 func(Name:Ps=BBs)    :- emit('\t.globl ~w',[Name]),emit('~w:',[Name]),
