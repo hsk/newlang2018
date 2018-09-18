@@ -17,7 +17,8 @@ compile(Alloc,File) :- parseFile(File,P),genCode(P,E),call(Alloc,E,M),genAmd64('
 main([Src])       :- compile(memAlloc,Src).
 main(['-O1',Src]) :- compile(linearScanRegAlloc,Src).
 main(['-O2',Src]) :- compile(regAlloc,Src).
-main :- current_prolog_flag(argv,Argv),catch(main(Argv),E,(writeln(error:E),halt(-1))),halt.
+main :- current_prolog_flag(argv,Argv),
+        catch(main(Argv),E,(format('\033[0;41m~w\033[0;39m\n',[E]),halt(-1))),halt.
 comp :- current_prolog_flag(os_argv,OS),current_prolog_flag(argv,Argv),
         subtract(OS,Argv,OS2),member('-c',OS2).
 :- comp; main.

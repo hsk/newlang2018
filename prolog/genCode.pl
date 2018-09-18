@@ -1,15 +1,13 @@
 :- module(genCode,[genCode/2,resetid/0,genid/2]).
-resetid      :- nb_setval(id,0).
-genid(S,A)  :- nb_getval(id,C),C1 is C+1,nb_setval(id,C1),format(atom(A),'.~w~w',[S,C]).
-initBBs(Lbl) :- nb_setval(lbl,Lbl),nb_setval(cs,[]),nb_setval(bbs,(H1,H1)).
-add(C)       :- nb_getval(cs,Cs),
-                (Cs=[L|_],member(L,[br(_),bne(_,_,_),ret(_)]);nb_setval(cs,[C|Cs])).
-label(Lbl)   :- nb_getval(lbl,Lb2),nb_getval(cs,Cs),reverse(Cs,Cs_),
-                nb_getval(bbs,(BBs,[Lb2:Cs_|H1])),nb_setval(bbs,(BBs,H1)),
-                nb_setval(lbl,Lbl),nb_setval(cs,[]).
+resetid      :- retractall(id(_)),assert(id(0)).
+genid(S,A)   :- retract(id(C)),C1 is C+1,assert(id(C1)),format(atom(A),'.~w~w',[S,C]).
+initBBs(Lbl) :- asserta(lbl(Lbl)).
+add(C)       :- cs(L),member(L,[br(_),bne(_,_,_),ret(_)]);asserta(cs(C)).
+label(Lbl)   :- retract(lbl(Lb2)),assert(lbl(Lbl)),
+                findall(C,retract(cs(C)),Cs),reverse(Cs,Cs_),assert(bb(Lb2:Cs_)).
 bb(Lbl,F,B)  :- label(Lbl),call(F),add(B).
-getBBs(BBs)  :- nb_getval(cs,Cs),reverse(Cs,Cs_),
-                nb_getval(lbl,Lbl),nb_getval(bbs,(BBs,[Lbl:Cs_])).
+getBBs(BBs)  :- retract(lbl(Lbl)),findall(C,retract(cs(C)),Cs),reverse(Cs,Cs_),
+                findall(BB,retract(bb(BB)),BBs,[Lbl:Cs_]).
 expr(bin(Op,A,B),R) :-  genid(r,R),expr(A,A1),expr(B,B1),add(bin(Op,A1,B1,R)).
 expr(mov(A,R),R) :-     expr(A,R1),add(mov(R1,R)).
 expr(call(A,B),R) :-    genid(r,R),maplist(expr,B,Rs),add(call(A,Rs,R)).
@@ -26,4 +24,4 @@ stmt(while(A,B)) :-     genid(while,While),genid(then,Then),genid(cont,Cont),
 stmt(ret(E)) :-         expr(E,R),add(ret(R)).
 stmt(E) :-              expr(E,_).
 func(N:A=B,N:A=BBs) :-  genid(enter,E),initBBs(E),forall(member(S,B),stmt(S)),getBBs(BBs).
-genCode(P,R) :-         resetid,maplist(func,P,R),!.
+genCode(P,R) :-         resetid,dynamic(cs/1),maplist(func,P,R),!.

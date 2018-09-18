@@ -14,12 +14,12 @@ live_bb(G,L:[i=I,o=_,bb=BB,br=Br],L:[i=I3,o=O1,bb=BB,br=Br]) :-
 live(G,R) :- maplist(live_bb(G),G,G2),(G=G2->R=G;live(G2,R)).
 
 kill_code((O,I),(Lives,Kills),(Lives2,[(O2,Dies)|Kills])) :-
-  union(I,O,IO),subtract(IO,Lives,Dies), % 最後の出現。ここで死んだ
-  subtract(O,Dies,O2), % 一度も使われない変数
+  subtract(I,Lives,Dies), % 最後の出現。ここで死んだ
+  intersection(O,Lives,O2), % 一度も使われない変数は生まれない
   union(I,Lives,Lives1), % 入力あったので生きている
-  subtract(Lives1,O,Lives2). % 生まれる前は生きてない
+  subtract(Lives1,O2,Lives2). % 生まれる前は生きてない
 kill_bb(_:[i=I,o=O,bb=BB|_],(I,Kills)) :-
-  reverse(BB,RBB),foldl(kill_code,RBB,(O,[]),(_,Kills)).
+  reverse(BB,RBB),foldl(kill_code,RBB,(O,[]),(I,Kills)).
 kill(G,R) :- maplist(kill_bb,G,R).
 
 io_imm(Is,Is_) :- findall(R,(member(R,Is),atom(R),($_\=R,\_\=R)),Is_).
