@@ -1,4 +1,4 @@
-# Simple x86_64 native compiler writing by SWI-Prolog on linux.
+# Simple x86_64 native compiler from simple language writing by SWI-Prolog on linux.
 
 256 line toy language compiler.
 
@@ -17,11 +17,20 @@
 
 ## Usage
 
-    swipl main.pl src.mc
-    gcc a.s -static lib/lib.c -o a.out
-    ./a.out
+    $ swipl main.pl src.mc
+    $ gcc a.s -static lib/lib.c -o a.out
+    $ ./a.out
     54321
     55
+
+or
+
+    make
+
+or
+
+    make test
+
 
 ## source program example
 
