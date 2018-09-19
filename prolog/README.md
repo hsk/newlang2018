@@ -2,7 +2,7 @@
 
 256 line toy language compiler.
 
-## feautures
+## Feautures
 
 - Simple memory allocation
 - Linear Scan register allocation & spilling
@@ -11,23 +11,17 @@
     - Allocator use Welsh & Powell coloring algorithm.
     - Spilling use Simple memory allocation algorithm.
 
-## install
+## Install
 
     apt install swi-prolog gcc
 
-## usage
+## Usage
 
     swipl main.pl src.mc
-
-is simple memory allocation,
-
-    swipl main.pl -O1 src.mc
-
-is linear scan register allocation and
-
-    swipl main.pl -O2 src.mc
-
-is graph register allocation.
+    gcc a.s -static lib/lib.c -o a.out
+    ./a.out
+    54321
+    55
 
 ## source program example
 
@@ -53,7 +47,7 @@ is graph register allocation.
       return(a+b)
     ].
 
-## compile path
+## Compile path
 
 - Parse *.mc
     - Read prolog style terms and convert AST
@@ -64,12 +58,16 @@ is graph register allocation.
 - Regster allocation
     - Simple memory allocation allocates memory addresses for all internal code variables.
         - [memAlloc.pl](memAlloc.pl)
-    - Liveness analysis is a dataflow analysis that computes the variables making and removing in each code in the basic block.
-        - [liveness.pl](liveness.pl)
-    - Linear scan register allocation assigns registers to internal code variables in a simple but fast way.
-        - [liveness.pl](liveness.pl) [linearScanRegAlloc.pl](linearScanRegAlloc.pl)
-    - Graph coloring register allocation assigns registers to internal code variables using simple Welsh & Powel Graph coloring algorithm.
-        - [liveness.pl](liveness.pl) [graph.pl](graph.pl) [graphRegAlloc.pl](graphRegAlloc.pl)
 - Output x86_64 assembly codes
     - Output assembly from internal codes to a *.s file
         - [genAmd64.pl](genAmd64.pl)
+
+## Optimization
+
+- Optimize Register allocation
+    - Liveness analysis is a dataflow analysis that computes the variables making and removing in each code in the basic block. Result is shadow tree to internal codes.
+        - [liveness.pl](liveness.pl)
+    - Linear scan register allocation assigns registers to internal code variables in a simple but fast way.
+        - [linearScanRegAlloc.pl](linearScanRegAlloc.pl)
+    - Simple graph coloring register allocation assigns registers to internal code variables using Welsh & Powel Graph coloring algorithm.
+        - [graph.pl](graph.pl) [graphRegAlloc.pl](graphRegAlloc.pl)
