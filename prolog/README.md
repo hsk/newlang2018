@@ -60,23 +60,27 @@ or
 
 - Parse *.mc
     - Read prolog style terms and convert AST
-        - [main.pl](main.pl)
+        - [main.pl](main.pl) 25 lines
 - Generate internal codes
     - Compile AST to internal codes of basic blocks
-        - [genCode.pl](genCode.pl)
+        - [genCode.pl](genCode.pl) 27 lines
 - Regster allocation
     - Simple memory allocation allocates memory addresses for all internal code variables.
-        - [memAlloc.pl](memAlloc.pl)
+        - [memAlloc.pl](memAlloc.pl) 23 lines
 - Output x86_64 assembly codes
     - Output assembly from internal codes to a *.s file
-        - [genAmd64.pl](genAmd64.pl)
+        - [genAmd64.pl](genAmd64.pl) 47 lines
+
+122 lines.
 
 ## Optimization
 
 - Optimize Register allocation
     - Liveness analysis is a dataflow analysis that computes the variables making and removing in each code in the basic block. Result is shadow tree to internal codes.
-        - [liveness.pl](liveness.pl)
+        - [liveness.pl](liveness.pl) 78 lines
     - Linear scan register allocation assigns registers to internal code variables in a simple but fast way.
-        - [linearScanRegAlloc.pl](linearScanRegAlloc.pl)
+        - [linearScanRegAlloc.pl](linearScanRegAlloc.pl) 32 lines
     - Simple graph coloring register allocation assigns registers to internal code variables using Welsh & Powel Graph coloring algorithm.
-        - [graph.pl](graph.pl) [graphRegAlloc.pl](graphRegAlloc.pl)
+        - [graph.pl](graph.pl) 82 lines [graphRegAlloc.pl](graphRegAlloc.pl) 62 lines
+
+all 256 lines.
