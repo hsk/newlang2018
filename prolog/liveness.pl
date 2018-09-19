@@ -1,10 +1,12 @@
-:- module(liveness,[liveness/2,regp/1,regs/1,regp2/1,regs2/1]).
-
+:- module(liveness,[liveness/2,regp/1,regs/1,regp2/1,regs2/1,rp/1,rp2/1,r/1,r2/1]).
 regp([\rdi,\rsi,\rdx,\rcx,\r8,\r9]).
 regs([\r10,\r11,\rbx,\r12,\r13,\r14,\r15]).
 regp2([\rdi,\rsi,\rdx,\rcx,\r8,\r9,\r10,\r11]).
 regs2([\rbx,\r12,\r13,\r14,\r15]).
-
+rp(R) :- regp(Rs),member(R,Rs).
+rp2(R) :- regp2(Rs),member(R,Rs).
+r(R) :- regs(Rs),member(R,Rs).
+r2(R) :- regs2(Rs),member(R,Rs).
 live_br(G,B,I>O,I2>O2) :- member(B:V,G),member(i=I1,V),union(I1,O,O2),union(I1,I,I2).
 live_code(I>O,I1,I3)   :- union(I,I1,I2),subtract(I2,O,I3).
 live_bb(G,L:[i=I,o=_,bb=BB,br=Br],L:[i=I3,o=O,bb=BB,br=Br]) :-
