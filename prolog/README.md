@@ -1,6 +1,6 @@
 # Simple x86_64 native compiler writing by SWI-Prolog on linux.
 
-300 line toy language compiler.
+256 line toy language compiler.
 
 ## feautures
 
@@ -57,19 +57,19 @@ is graph register allocation.
 
 - Parse *.mc
     - Read prolog style terms and convert AST
-        - main.pl
+        - [main.pl](main.pl)
 - Generate internal codes
     - Compile AST to internal codes of basic blocks
-        - genCode.pl
+        - [genCode.pl](genCode.pl)
 - Regster allocation
     - Simple memory allocation allocates memory addresses for all internal code variables.
-        - memAlloc.pl
+        - [memAlloc.pl](memAlloc.pl)
     - Liveness analysis is a dataflow analysis that computes the variables making and removing in each code in the basic block.
-        - liveness.pl
+        - [liveness.pl](liveness.pl)
     - Linear scan register allocation assigns registers to internal code variables in a simple but fast way.
-        - liveness.pl linearScanRegAlloc.pl
+        - [liveness.pl](liveness.pl) [linearScanRegAlloc.pl](linearScanRegAlloc.pl)
     - Graph coloring register allocation assigns registers to internal code variables using simple Welsh & Powel Graph coloring algorithm.
-        - liveness.pl graph.pl graphRegAlloc.pl
+        - [liveness.pl](liveness.pl) [graph.pl](graph.pl) [graphRegAlloc.pl](graphRegAlloc.pl)
 - Output x86_64 assembly codes
     - Output assembly from internal codes to a *.s file
-        - genAmd64.pl
+        - [genAmd64.pl](genAmd64.pl)

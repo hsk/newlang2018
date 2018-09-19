@@ -11,7 +11,7 @@ prms(Ps)   :- regps(Regps),length(Regps,L),
 getPush(Rs) :- setof(R,(regp2(R),live(A),lookup(A,R)),Rs);Rs=[].
 code(mov(A,B),mov(A1,B1))           :- adr(A,A1),adr(B,B1).
 code(bin(O,A,B,C),bin(O,A1,B1,C1))  :- adr(A,A1),adr(B,B1),adr(C,C1).
-code(call(A,B,C),call(A,B1,C1,Rs))  :- getPush(Rs),adrs(B,B1),adr(C,C1).
+code(call(A,B,C),call(A,B1,C1,Rs))  :- adrs(B,B1),adr(C,C1),getPush(Rs).
 code(ret(A),ret(A1))                :- adr(A,A1).
 code(bne(A,B,C),bne(A1,B,C))        :- adr(A,A1).
 code(br(A),br(A)).

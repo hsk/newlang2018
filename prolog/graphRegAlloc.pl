@@ -18,7 +18,7 @@ code(C,_) :- throw(regAlloc(code(C))).
 code1(Code,(Mks,Rms),Code_) :-
   forall(member(R,Mks),asserta(live1(R))),
   forall(member(R,Rms),retract(live(R))),code(Code,Code_),!,
-  forall(member(R,Mks),asserta(live(R))),retractall(live1(R)).
+  forall(member(R,Mks),asserta(live(R))),retractall(live1(_)).
 bb(L:BB,(Lives,BBAlives),L:BB1) :-
   forall(member(L1,Lives),assert(live(L1))),
   maplist(code1,BB,BBAlives,BB1),retractall(live(_)).
