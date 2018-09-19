@@ -1,11 +1,11 @@
 :- module(genCode,[genCode/2,resetid/0,genid/2]).
-resetid      :- retractall(id(_)),assert(id(0)).
-genid(S,A)   :- retract(id(C)),C1 is C+1,assert(id(C1)),format(atom(A),'.~w~w',[S,C]).
-initBBs(Lbl) :- asserta(lbl(Lbl)).
-add(C)       :- last;assert(cs(C)),(member(C,[br(_),bne(_,_,_),ret(_)]),assert(last);!).
-commitBB     :- retract(lbl(Lbl)),retract(last),findall(C,retract(cs(C)),Cs),assert(bb(Lbl:Cs)).
-label(Lbl)   :- commitBB,assert(lbl(Lbl)).
-getBBs(BBs)  :- add(ret($0)),commitBB,findall(BB,retract(bb(BB)),BBs).
+resetid     :- retractall(id(_)),assert(id(0)).
+genid(S,A)  :- retract(id(C)),C1 is C+1,assert(id(C1)),format(atom(A),'.~w~w',[S,C]).
+
+add(C)      :- assert(c(C)).
+label(L)    :- commit,assert(l(L)).
+commit      :- retract(l(L)),findall(C,retract(c(C)),Cs),assert(bb(L:Cs));!.
+commit(BBs) :- add(ret($0)),commit,findall(BB,retract(bb(BB)),BBs).
 
 expr(bin(Op,A,B),R) :-  genid(r,R),expr(A,A1),expr(B,B1),add(bin(Op,A1,B1,R)).
 expr(mov(A,R),R) :-     expr(A,R1),add(mov(R1,R)).
@@ -23,5 +23,5 @@ stmt(while(A,B)) :-     genid(while,While),genid(then,Then),genid(cont,Cont),
 stmt(ret(E)) :-         expr(E,R),add(ret(R)).
 stmt(B) :-              is_list(B),!,forall(member(S,B),stmt(S)).
 stmt(E) :-              expr(E,_).
-func(N:A=B,N:A=BBs) :-  genid(enter,E),initBBs(E),stmt(B),getBBs(BBs).
+func(N:A=B,N:A=BBs) :-  genid(enter,E),label(E),stmt(B),commit(BBs).
 genCode(P,R) :-         resetid,dynamic(last/0),maplist(func,P,R),!.
