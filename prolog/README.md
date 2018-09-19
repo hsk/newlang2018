@@ -4,6 +4,7 @@
 
 ## feautures
 
+- Simple memory allocation
 - Linear Scan register allocation & spilling
     - Spilling use Simple memory allocation algorithm.
 - Graph coloring register allocation & spilling
@@ -18,9 +19,13 @@
 
     swipl main.pl src.mc
 
-is linear scan register allocation or
+is simple memory allocation,
 
     swipl main.pl -O1 src.mc
+
+is linear scan register allocation and
+
+    swipl main.pl -O2 src.mc
 
 is graph register allocation.
 
@@ -50,15 +55,21 @@ is graph register allocation.
 
 ## compile path
 
-- parse *.mc
-    - read prolog style expressions and convert AST
+- Parse *.mc
+    - Read prolog style terms and convert AST
         - main.pl
-- generate inner codes
-    - compile AST to inner codes
+- Generate internal codes
+    - Compile AST to internal codes of basic blocks
         - genCode.pl
-- regster allocation
-    - allocate register from inner codes which linear scan or graph coloring register allocation algorithm
-        - liveness.pl linearScanRegAlloc.pl graph.pl graphRegAlloc.pl
-- output x86_64 assembly code
-    - output assembly from inner codes to a *.s file
-    - genAmd64.pl
+- Regster allocation
+    - Simple memory allocation allocates memory addresses for all internal code variables.
+        - memAlloc.pl
+    - Liveness analysis is a dataflow analysis that computes the variables making and removing in each code in the basic block.
+        - liveness.pl
+    - Linear scan register allocation assigns registers to internal code variables in a simple but fast way.
+        - liveness.pl linearScanRegAlloc.pl
+    - Graph coloring register allocation assigns registers to internal code variables using simple Welsh & Powel Graph coloring algorithm.
+        - liveness.pl graph.pl graphRegAlloc.pl
+- Output x86_64 assembly codes
+    - Output assembly from internal codes to a *.s file
+        - genAmd64.pl
