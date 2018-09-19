@@ -1,12 +1,12 @@
 :- module(memAlloc,[memAlloc/2]).
-regp([\rdi,\rsi,\rdx,\rcx,\r8,\r9]).
+regps([\rdi,\rsi,\rdx,\rcx,\r8,\r9]).
 adr(A,A) :- ($_=A;\_=A;ptr(_,_)=A),!.
 adr(A,N) :- m(A:N),!.
 adr(A,N) :- retract(c(C)),C1 is C+8,assert(c(C1)),N=ptr(\rbp,-C1),asserta(m(A:N)).
 adrs(A,A1) :- maplist(adr,A,A1).
-prms(Ps,Ps_) :- regp(Regp),length(Regp,L),retractall(m(_)),
+prms(Ps,Ps_) :- regps(Regps),length(Regps,L),retractall(m(_)),
                 findall(P:R,(nth0(I,Ps,P),I>=L,C is (I-L+2)*8,R=ptr(\rbp,C),assert(m(P:R))),M2),
-                findall(P:R,(nth0(I,Ps,P),nth0(I,Regp,R)),M),append(M,M2,M3),
+                findall(P:R,(nth0(I,Ps,P),nth0(I,Regps,R)),M),append(M,M2,M3),
                 forall(member(A:_,M),adr(A,_)),maplist(prms1,M3,Ps_).
 prms1(A:R,mov(R,V)) :- m(A:V).
 code(mov(A,B),mov(A1,B1))           :- adr(A,A1),adr(B,B1).
