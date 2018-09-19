@@ -2,11 +2,11 @@
 resetid      :- retractall(id(_)),assert(id(0)).
 genid(S,A)   :- retract(id(C)),C1 is C+1,assert(id(C1)),format(atom(A),'.~w~w',[S,C]).
 initBBs(Lbl) :- asserta(lbl(Lbl)).
-add(C)       :- cs(L),member(L,[br(_),bne(_,_,_),ret(_)]);assert(cs(C)).
-label(Lbl)   :- retract(lbl(Lb2)),assert(lbl(Lbl)),
-                findall(C,retract(cs(C)),Cs),assert(bb(Lb2:Cs)).
-getBBs(BBs)  :- retract(lbl(Lbl)),add(ret($0)),findall(C,retract(cs(C)),Cs),
-                findall(BB,retract(bb(BB)),BBs,[Lbl:Cs]).
+add(C)       :- last;assert(cs(C)),(member(C,[br(_),bne(_,_,_),ret(_)]),assert(last);!).
+commitBB     :- retract(lbl(Lbl)),retract(last),findall(C,retract(cs(C)),Cs),assert(bb(Lbl:Cs)).
+label(Lbl)   :- commitBB,assert(lbl(Lbl)).
+getBBs(BBs)  :- add(ret($0)),commitBB,findall(BB,retract(bb(BB)),BBs).
+
 expr(bin(Op,A,B),R) :-  genid(r,R),expr(A,A1),expr(B,B1),add(bin(Op,A1,B1,R)).
 expr(mov(A,R),R) :-     expr(A,R1),add(mov(R1,R)).
 expr(call(A,B),R) :-    genid(r,R),maplist(expr,B,Rs),add(call(A,Rs,R)).
@@ -24,4 +24,4 @@ stmt(ret(E)) :-         expr(E,R),add(ret(R)).
 stmt(B) :-              is_list(B),!,forall(member(S,B),stmt(S)).
 stmt(E) :-              expr(E,_).
 func(N:A=B,N:A=BBs) :-  genid(enter,E),initBBs(E),stmt(B),getBBs(BBs).
-genCode(P,R) :-         resetid,dynamic(cs/1),maplist(func,P,R),!.
+genCode(P,R) :-         resetid,dynamic(last/0),maplist(func,P,R),!.
