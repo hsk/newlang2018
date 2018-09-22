@@ -69,7 +69,7 @@ or
 
 ## One Source compiler
 
-- [all.pl](all.pl) is one source 120lines memory allocation compiler.
+- [all.pl](all.pl) is one source 128 lines memory allocation compiler.
 
     $ swipl all.pl src.mc & gcc -static a.s lib/lib.c & ./a.out
     54321
