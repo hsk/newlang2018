@@ -1,11 +1,12 @@
 % one source compiler
 
-:- dynamic(start/1).
-term_expansion(:-start(M),start(M)) :- assert(start(M)).
-term_expansion(:-end(M),:-true) :- retractall(start(M)),forall(retract(data(P)),M:assert(P)).
-term_expansion(P,start(M)) :- start(M),assert(data(P)).
+:- dynamic(start/2).
+term_expansion(:-start(M,E),:-true) :- assert(start(M,E)).
+term_expansion(:-end(M),:-true) :- retract(start(M,E)),forall(retract(data(P)),M:assert(P)),
+                                   forall(member(P1,E),(M:export(M:P1),user:import(M:P1))).
+term_expansion(P,:-true) :- start(_,_),assert(data(P)).
 
-:- start(parser).
+:- start(parser,[parseFile/2]).
   expr(I,I) :- integer(I),!.
   expr(A,A) :- atom(A),!.
   expr(E1+E2,bin(addq,E1_,E2_)) :- expr(E1,E1_),expr(E2,E2_).
@@ -21,7 +22,7 @@ term_expansion(P,start(M)) :- start(M),assert(data(P)).
   parse(Fs,Fs_) :- maplist(func,Fs,Fs_),!.
   parseFile(File,Fs_) :- read_file_to_terms(File,Fs,[]),parse(Fs,Fs_).
 :- end(parser).
-:- start(genCode).
+:- start(genCode,[genCode/2]).
   resetid     :- retractall(id(_)),assert(id(0)).
   genid(S,A)  :- retract(id(C)),C1 is C+1,assert(id(C1)),format(atom(A),'.~w~w',[S,C]).
 
@@ -49,7 +50,7 @@ term_expansion(P,start(M)) :- start(M),assert(data(P)).
   func(N:A=B,N:A=BBs) :-  genid(enter,Enter),label(Enter),stmt(B),commit(BBs).
   genCode(P,R) :-         resetid,dynamic(c/1),maplist(func,P,R),!.
 :- end(genCode).
-:- start(memAlloc).
+:- start(memAlloc,[memAlloc/2]).
   regps([\rdi,\rsi,\rdx,\rcx,\r8,\r9]).
   adr(A,A) :- ($_=A;\_=A;ptr(_,_)=A),!.
   adr(A,N) :- m(A:N),!.
@@ -73,7 +74,7 @@ term_expansion(P,start(M)) :- start(M),assert(data(P)).
     assert(c(0)),prms(Ps,Ps_),maplist(bb,BBs,[N1:Cs|BBs1]),retract(c(Size)).
   memAlloc(Fs,Fs_) :- maplist(func,Fs,Fs_),!.
 :- end(memAlloc).
-:- start(genAmd64).
+:- start(genAmd64,[genAmd64/2]).
   regs([\rdi,\rsi,\rdx,\rcx,\r8,\r9]).
   align(V,Align,S)     :- S is ((V+Align-1) div Align) * Align.
   imm(A,A)             :- atom(A),!.
@@ -122,7 +123,6 @@ term_expansion(P,start(M)) :- start(M),assert(data(P)).
                                             (close(FP),retract(fp(_)))).
 :- end(genAmd64).
 
-main([File]) :- parser:parseFile(File,P),genCode:genCode(P,E),
-                memAlloc:memAlloc(E,M),genAmd64:genAmd64('a.s',M).
+main([File]) :- parseFile(File,P),genCode(P,E),memAlloc(E,M),genAmd64('a.s',M).
 :- current_prolog_flag(argv,Argv),
    catch(main(Argv),E,(format('\033[0;41m~w\033[0;39m\n',[E]),halt(-1))),halt.
