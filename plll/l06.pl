@@ -40,7 +40,7 @@ term_expansion(P,:-true) :- start(_,_),assert(data(P)).
   out(valloca(R)) :- asm('\t~w = alloca ~w',[p(R),pt(R)]).
   out(vload(R1,R2)) :- asm('\t~w = load ~w,~w ~w',[p(R1),pt(R1),pt(R2),p(R2)]).
   out(vstore(R1,R2)) :- asm('\tstore ~w ~w,~w ~w',[pt(R1),p(R1),pt(R2),p(R2)]).
-  out(vfield(R1,Addr,Zero,A)) :- t(Addr,tp(T)),asm('~w = getelementptr inbounds ~w,~w ~w,~w ~w,~w ~w',
+  out(vfield(R1,Addr,Zero,A)) :- t(Addr,tp(T)),asm('\t~w = getelementptr inbounds ~w,~w ~w,~w ~w,~w ~w',
                                   [p(R1),pt(T),pt(Addr),p(Addr),pt(Zero),p(Zero),pt(A),p(A)]).
   entry :-  asm('define i32 @main() {'),
             asm('entry:').
