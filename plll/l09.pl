@@ -8,15 +8,18 @@ term_expansion(P,:-true) :- start(_,_),assert(data(P)).
   genid(S,A)  :- retract(id(C)),C1 is C+1,assert(id(C1)),format(atom(A),'.~w~w',[S,C]).
   genreg(T,rl(T,Id)) :- genid('..',Id).
   add_env(Id,T) :- assert(env(Id,T)), add_str(T).
-  add_str(T) :- T\=tstr(_); str(T,_); genreg(T,R),assert(str(T,R)).
+  add_str(tarr(T,_)) :- add_str(T).
+  add_str(tstr(Ls)) :- T=tstr(Ls),(str(T,_); genreg(T,R),assert(str(T,R))),
+                       forall(member(_:T1,Ls),add_str(T1)).
+  add_str(_).
   add(V) :- assert(v(V)).
   cut(tp(tarr(T,_)),tp(T)).
   arr(eid(Id),rl(tp(T),Id)) :- !,env(Id,T).
   arr(earray(Id,E),R4) :- !,e(E,R1),R2=rn(ti(64),0),arr(Id,R3),
                           emit:t(R3,T),cut(T,T4),genreg(T4,R4),add(vfield(R4,R3,R2,R1)).
-  arr(efield(Id,Idx),R4) :- env(Id,T),index(T,Idx,N),R1=rn(ti(32),N),R2=rn(ti(64),0),
-                            arr(eid(Id),R3),genreg(tp(ti(64)),R4),
-                            add(vfield(R4, R3, R2, R1)).
+  arr(efield(Id,Idx),R4) :- arr(Id,R3),emit:t(R3,tp(tstr(M))),T=tstr(M),member(Idx:T2,M),
+                            index(T,Idx,N),R1=rn(ti(32),N),R2=rn(ti(64),0),genreg(tp(T2),R4),
+                            add(vfield(R4,R3,R2,R1)).
   arr(E,_) :- findall(env(Id,T),env(Id,T),Vs),throw(error:arr(E);Vs).
   index(tstr(Ls),Id,N) :- nth0(N,Ls,Id:_).
   index(_,_) :- throw(error).
@@ -76,15 +79,15 @@ term_expansion(P,:-true) :- start(_,_),assert(data(P)).
                     (close(FP),retract(fp(_)))).
 :- end(emit).
 :-compile(eblock([
-    evar(b, tstr([x:ti(64), y:ti(64)])),
-    eassign(efield(b, x), eint(3)),
-    eassign(efield(b, y), emul(eint(3), eint(5))),
-    eprint(efield(b, x)),
-    eprint(efield(b, y)),
-    eprint(eadd(efield(b, x), efield(b, y)))
+    evar(b,tstr([x:ti(64),y:tstr([a:ti(64)])])),
+    eassign(efield(eid(b),x),eint(3)),
+    eassign(efield(efield(eid(b),y),a),emul(eint(3),eint(5))),
+    eprint(efield(eid(b),x)),
+    eprint(efield(efield(eid(b),y),a)),
+    eprint(eadd(efield(eid(b),x),efield(efield(eid(b),y),a)))
   ]),Codes),!,
-  emit('l08.ll',Codes),!,
-  shell('llc l08.ll -o l08.s'),
-  shell('gcc -static l08.s -o l08.exe'),
-  shell('./l08.exe').
+  emit('l09.ll',Codes),!,
+  shell('llc l09.ll -o l09.s'),
+  shell('gcc -static l09.s -o l09.exe'),
+  shell('./l09.exe').
 :-halt.
