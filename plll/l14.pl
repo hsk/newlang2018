@@ -35,6 +35,11 @@ term_expansion(P,:-true) :- start(_,_),assert(data(P)).
   index(T,Id,N) :- cut_t(T,T1),index1(T1,Id,N).
   index1(tstr(Ls),Id,N) :- !,nth0(N,Ls,Id:_).
   index1(_,_,_) :- throw(error).
+  setAssign(E1,T,E) :- cut_t(T,T1),setAssign1(E1,T1,E).
+  setAssign1(E1,tstr(Types),etuple(Ls)) :- maplist([E,N:T]>>(E=etuple(_)->setAssign(efield(E1,N),T,E)
+                                                            ;e(eassign(efield(E1,N),E),_)),Ls,Types).
+  setAssign1(_,_,null).
+  setAssign1(_,T,E) :- throw(error:setAssign(T,E)).
   compile(Es,Fs) :- resetid,dynamic(str/2),forall(member(E,Es),g(E)),findall(F,func(F),Fs).
   g(eassign(eid(A),efun(Prms,T,Body))) :-
     push,findall(T,(member(S:T,Prms),add_env(S,T)),Ts),e(Body,R),cut_t(T,T1),
@@ -47,15 +52,25 @@ term_expansion(P,:-true) :- start(_,_),assert(data(P)).
   e(emul(E1,E2),R3) :- e(E1,R1),e(E2,R2),emit:t(R1,T1),genreg(T1,R3),add(vbin(R3,mul,R1,R2)).
   e(eblock(Es),R) :- foldl([E,R,R1]>>e(E,R1),Es,rn(tv,void),R).
   e(eprint(E1),rn(tv,void)) :- !,e(E1,R1),add(vprint(R1)).
-  e(evar(Id,T),R1) :- R1=rl(T,Id),add(valloca(R1)),add_env(Id,T).
-  e(eassign(eid(S),etyp(T)),rn(tv,void)) :- !,add_env(S,T,true).
-  e(eassign(E1,E2),R1) :- !,e(E2,R1),arr(E1,R2),add(vstore(R1,R2)).
+  e(evar(Id,T,E),R1) :- R1=rl(T,Id),add(valloca(R1)),add_env(Id,T),
+                        (E=null;e(eassign(eid(Id),E),_)).
+  e(eassign(E1,E2),R1) :- arr(E1,R2),emit:t(R2,T2),cut_t(T2,T3),
+                          (T3=tp(T),T=tstr(_) -> setAssign(E1,T,E2),R1=R2
+                          ; e(E2,R1),add(vstore(R1,R2))).
   e(E,R2) :- (E=eid(_);E=earray(_,_);E=efield(_,_);E=eptr(_)),!,
              arr(E,R1),emit:t(R1,T1),cut(T1,T2),
              (T2=tfun(_,_)->emit:id(R1,Id),R2=rg(T2,Id) ; genreg(T2,R2),add(vload(R2,R1))).
   e(eref(E),R1) :- arr(E,R1).
   e(ecall(E1,Es),R0) :- e(E1,R1),maplist(e,Es,Rs),emit:t(R1,T1),
                         cut_t(T1,tfun(_,T)),genreg(T,R0),add(vcall(R0,R1,Rs)).
+  e(eif(A,B,C),R2) :-
+    genid(ok,Id0),genid(else,Id1),genid(else,L0),genid(endif,Id2),genid(endif,L1),
+    e(A,R),add(vjne(R,Id0,Id0,Id1)),% cond
+    e(B,R0),add(vlabel(L0,L0)),add(vgoto(Id1,Id2)),% then
+    e(C,R1),add(vlabel(L1,L1)),add(vgoto(Id2,Id2)),% else
+    emit:t(R0,T0),emit:t(R1,T1),
+    (R0 \= null,R1 \= null,T0 \= tv,T0 = T1 -> genreg(T0,R2),add(vphi(R2,L0,L1,T0,R0,R1))
+    ; R2=null).
   e(E,_) :- writeln(error(compile:e(E))),halt(-1).
 :- end(compile).
 :- start(emit,[emit/2]).
@@ -93,6 +108,15 @@ term_expansion(P,:-true) :- start(_,_),assert(data(P)).
                       atomic_list_concat(Cs,',',S),
                       asm('\t~w = call ~w ~w(~w) nounwind ssp',[p(A),pt(A),p(B),p(S)]).
   out(vret(R1)) :- asm('\tret ~w ~w',[pt(R1),p(R1)]).
+  out(vjne(R,L,J1,J2)) :-       compile:genid('%reg_',R1),
+                                asm('\t~w = icmp ne ~w ~w,0',[p(R1),pt(R),p(R)]),
+                                asm('\tbr i1 ~w,label %~w,label %~w',[p(R1),p(J1),p(J2)]),
+                                asm('~w:',[p(L)]).
+  out(vgoto(L,J)) :-            asm('\tbr label %~w',[p(J)]),
+                                (L=null ; asm('~w:',[p(L)])).
+  out(vlabel(J,L)) :-           (J=null ;asm('\tbr label %~w',[p(J)])),
+                                asm('~w:',[p(L)]).
+  out(vphi(R,L1,L2,T,R1,R2)) :- asm('\t~w = phi ~w[~w,%~w],[~w,%~w]',[p(R),pt(T),p(R1),p(L1),p(R2),p(L2)]).
   out(V) :- writeln(error:out(V)),halt.
   entry :-  asm('define i32 @main() {'),
             asm('entry:'),
@@ -133,17 +157,25 @@ term_expansion(P,:-true) :- start(_,_),assert(data(P)).
       eadd(eid(a),eid(b))
     ]))),
     eassign(eid(main),efun([],tv,eblock([
-      evar(b,tname('A')),
+      evar(b,tname('A'),null),
       eassign(efield(eid(b),x),eint(ti(64),3)),
       eassign(efield(efield(eid(b),y),a),emul(eint(ti(64),3),eint(ti(64),5))),
       eprint(efield(eid(b),x)),
       eprint(efield(efield(eid(b),y),a)),
       eprint(eadd(efield(eid(b),x),efield(efield(eid(b),y),a))),
-      eprint(ecall(eid(add),[eint(ti(64),3),eint(ti(64),4)]))
+      eprint(ecall(eid(add),[eint(ti(64),3),eint(ti(64),4)])),
+      evar(c,tname('A'),etuple([eint(ti(64),5),etuple([eint(ti(64),10)])])),
+      eprint(efield(eid(c),x)),
+      eprint(efield(efield(eid(c),y),a)),
+      eassign(eid(c),etuple([eint(ti(64),105),etuple([eint(ti(64),110)])])),
+      eprint(efield(eid(c),x)),
+      eprint(efield(efield(eid(c),y),a)),
+      eprint(eif(eint(ti(64),0),eint(ti(64),1),eint(ti(64),2))),
+      eprint(eif(eint(ti(64),1),eint(ti(64),1),eint(ti(64),2)))
     ])))
   ],Codes),!,
-  emit('l12.ll',Codes),!,
-  shell('llc l12.ll -o l12.s'),
-  shell('gcc -static l12.s -o l12.exe'),
-  shell('./l12.exe').
+  emit('l14.ll',Codes),!,
+  shell('llc l14.ll -o l14.s'),
+  shell('gcc -static l14.s -o l14.exe'),
+  shell('./l14.exe').
 :-halt.

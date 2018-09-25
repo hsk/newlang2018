@@ -5,7 +5,7 @@ term_expansion(:-end(M),:-true) :- retract(start(M,E)),forall(retract(data(P)),M
 term_expansion(P,:-true) :- start(_,_),assert(data(P)).
 :- start(compile,[compile/2]).
   resetid     :- retractall(id(_)),assert(id(0)).
-  genid(S,A)  :- retract(id(C)),C1 is C+1,assert(id(C1)),format(atom(A),'.~w~w',[S,C]).
+  genid(S,A)  :- retract(id(C)),C1 is C+1,assert(id(C1)),format(atom(A),'~w~w',[S,C]).
   genreg(T,rl(T,Id)) :- genid('..',Id).
   add(V) :- assert(v(V)).
   compile(E,Vs) :- resetid,e(E,_),findall(V,retract(v(V)),Vs).
