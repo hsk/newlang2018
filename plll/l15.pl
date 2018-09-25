@@ -133,10 +133,6 @@ term_expansion(P,:-true) :- start(_,_),assert(data(P)).
                                 asm('~w:',[p(L)]).
   out(vphi(R,L1,L2,T,R1,R2)) :- asm('\t~w = phi ~w[~w,%~w],[~w,%~w]',[p(R),pt(T),p(R1),p(L1),p(R2),p(L2)]).
   out(V) :- writeln(error:out(V)),halt.
-  entry :-  asm('define i32 @main() {'),
-            asm('entry:'),
-            asm('\tret i32 0'),
-            asm('}').
   printl :- asm('@.str = private constant [5 x i8] c"%ld\\0A\\00"'),
             asm('define void @print_l(i64 %a) {'),
             asm('entry:'),

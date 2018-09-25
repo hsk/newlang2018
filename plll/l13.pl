@@ -101,10 +101,6 @@ term_expansion(P,:-true) :- start(_,_),assert(data(P)).
                       asm('\t~w = call ~w ~w(~w) nounwind ssp',[p(A),pt(A),p(B),p(S)]).
   out(vret(R1)) :- asm('\tret ~w ~w',[pt(R1),p(R1)]).
   out(V) :- writeln(error:out(V)),halt.
-  entry :-  asm('define i32 @main() {'),
-            asm('entry:'),
-            asm('\tret i32 0'),
-            asm('}').
   printl :- asm('@.str = private constant [5 x i8] c"%ld\\0A\\00"'),
             asm('define void @print_l(i64 %a) {'),
             asm('entry:'),
