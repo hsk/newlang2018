@@ -1,9 +1,9 @@
-:- dynamic(start/2).
-term_expansion(:-start(M,E),:-true) :- assert(start(M,E)).
-term_expansion(:-end(M),:-true) :- retract(start(M,E)),forall(retract(data(P)),M:assert(P)),
+:- dynamic(begin/2).
+term_expansion(:-begin(M,E),:-true) :- assert(begin(M,E)).
+term_expansion(:-end(M),:-true) :- retract(begin(M,E)),forall(retract(data(P)),M:assert(P)),
                                    forall(member(P1,E),(M:export(M:P1),user:import(M:P1))).
-term_expansion(P,:-true) :- start(_,_),assert(data(P)).
-:- start(compile,[compile/2]).
+term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
+:- begin(compile,[compile/2]).
   resetid     :- retractall(id(_)),assert(id(0)).
   genid(S,A)  :- retract(id(C)),C1 is C+1,assert(id(C1)),format(atom(A),'~w~w',[S,C]).
   genreg(rl(Id)) :- genid('..',Id).
@@ -15,7 +15,7 @@ term_expansion(P,:-true) :- start(_,_),assert(data(P)).
   e(eblock(Es),R) :- foldl([E,R,R1]>>e(E,R1),Es,rn(void),R).
   e(eprint(E1),R2) :- e(E1,R1),R2 = rn(void),add(vprint(R1)).
 :- end(compile).
-:- start(emit,[emit/2]).
+:- begin(emit,[emit/2]).
   p(rl(Id),X) :- format(atom(X),'%~w',[Id]).
   p(rn(Id),Id).
   p(A,A) :- atom(A).

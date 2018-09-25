@@ -1,9 +1,9 @@
-:- dynamic(start/2).
-term_expansion(:-start(M,E),:-true) :- assert(start(M,E)).
-term_expansion(:-end(M),:-true) :- retract(start(M,E)),forall(retract(data(P)),M:assert(P)),
+:- dynamic(begin/2).
+term_expansion(:-begin(M,E),:-true) :- assert(begin(M,E)).
+term_expansion(:-end(M),:-true) :- retract(begin(M,E)),forall(retract(data(P)),M:assert(P)),
                                    forall(member(P1,E),(M:export(M:P1),user:import(M:P1))).
-term_expansion(P,:-true) :- start(_,_),assert(data(P)).
-:- start(compile,[compile/2,str/2]).
+term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
+:- begin(compile,[compile/2,str/2]).
   resetid     :- retractall(id(_)),assert(id(0)).
   genid(S,A)  :- retract(id(C)),C1 is C+1,assert(id(C1)),format(atom(A),'~w~w',[S,C]).
   genreg(T,rl(T,Id)) :- genid('..',Id).
@@ -28,14 +28,12 @@ term_expansion(P,:-true) :- start(_,_),assert(data(P)).
   size(tp(_),8).
   size(tfun(_,_),8).
   size(tariant(M),S) :- variantInfo(tariant(M),(_,M)),size(M,S).
-
   variantInfo(tvariant(Ls),(T,Maxt)) :- foldl([_:tstr(M),(N,T),(N2,T2)]>>(
                                             VT2=tstr(['__tagIndex':ti(32)|M]),size(VT2,SizeVT),
                                             (SizeVT > N -> (N2,T2)=(SizeVT,VT2) ; (N2,T2)=(N,T))
                                         ),Ls,(0,null),(_,Maxt)),str(Maxt,T).
   variant(V,S) :- variantInfo(V,(S,_)).
   variantTagIdxAndStr(TagId, Ls,(N,tstr(['__tagIndex':ti(32)|M]),tstr(M))) :- nth0(N,Ls,TagId:tstr(M)).
-
   cut(T,T2) :- cut_t(T,T1),cut1(T1,T2).
   cut1(tp(tarr(T,_)),tp(T)).
   cut1(tp(T),T).
@@ -102,7 +100,7 @@ term_expansion(P,:-true) :- start(_,_),assert(data(P)).
     e(A,R),add(vjne(R,Id0,Id0,Id1)),% cond
     e(B,R0),add(vlabel(L0,L0)),add(vgoto(Id1,Id2)),% then
     e(C,R1),add(vlabel(L1,L1)),add(vgoto(Id2,Id2)),% else
-    (R0 \= null,R1 \= null,T0 \= tv,emit:t(R0,T0),emit:t(R1,T1),T0 = T1 ->
+    (R0 \= null,R1 \= null,emit:t(R0,T0),emit:t(R1,T1),T0 \= tv,T0 = T1 ->
      genreg(T0,R2),add(vphi(R2,L0,L1,T0,R0,R1)) ; R2=null).
   e(E,_) :- writeln(error(compile:e(E))),halt(-1).
   pattern(eswitch(E1,Ptns),R) :-
@@ -114,7 +112,7 @@ term_expansion(P,:-true) :- start(_,_),assert(data(P)).
       append(BindEs,[BodyE],B),!
     ),RPtns,eunit,IfE),!,e(IfE,R).
 :- end(compile).
-:- start(alpha,[alpha/2]).
+:- begin(alpha,[alpha/2]).
   find(Id,Env,V) :- member(Id:V,Env);V=Id.
   alpha(E,E1) :- e(E,[],(E1,_)).
   l(Ls,Env,R) :- l(Ls,Env,false,R).
@@ -150,7 +148,7 @@ term_expansion(P,:-true) :- start(_,_),assert(data(P)).
   e(etyp(T),Env,_,(etyp(T),Env)).
   e(E,_,_,_) :- writeln(error:e(E)),halt(-1).
 :- end(alpha).
-:- start(emit,[emit/2]).
+:- begin(emit,[emit/2]).
   t(rl(T,_),T).
   t(rn(T,_),T).
   t(rg(T,_),T).
@@ -166,7 +164,6 @@ term_expansion(P,:-true) :- start(_,_),assert(data(P)).
   pt1(tstr(Ls),X) :- compile:str(tstr(Ls),R),p(R,X).
   pt1(tname(N),X) :- format(atom(X),'%~w',[N]).
   pt1(tvariant(Ls),X) :- compile:variant(tvariant(Ls),R),p(R,X).
-
   p(A,A) :- atom(A),!.
   p(rl(_,Id),X) :- format(atom(X),'%~w',[Id]).
   p(rg(_,Id),X) :- format(atom(X),'@~w',[Id]).
