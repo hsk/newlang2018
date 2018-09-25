@@ -34,7 +34,7 @@ term_expansion(P,:-true) :- start(_,_),assert(data(P)).
                                             (SizeVT > N -> (N2,T2)=(SizeVT,VT2) ; (N2,T2)=(N,T))
                                         ),Ls,(0,null),(_,Maxt)),str(Maxt,T).
   variant(V,S) :- variantInfo(V,(S,_)).
-  variantTagIdxAndStr(TagId, N, Ls,(N,tstr(['__tagIndex':ti(32)|M]),tstr(M))) :- nth0(N,Ls,TagId:tstr(M)).
+  variantTagIdxAndStr(TagId, Ls,(N,tstr(['__tagIndex':ti(32)|M]),tstr(M))) :- nth0(N,Ls,TagId:tstr(M)).
 
   cut(T,T2) :- cut_t(T,T1),cut1(T1,T2).
   cut1(tp(tarr(T,_)),tp(T)).
@@ -44,10 +44,16 @@ term_expansion(P,:-true) :- start(_,_),assert(data(P)).
                           emit:t(R3,T3),cut_t(T3,T2),cut(T3,T4),genreg(T4,R4),
                           (T2=tp(tp(_)) -> genreg(T4,R5),add(vload(R5,R3)),add(vbin(R4,add,R5,R1))
                           ; add(vfield(R4,R3,R2,R1))).
-  arr(efield(Id,Idx),R4) :- arr(Id,R3),emit:t(R3,tp(T)),cut_t(T,T1),T1=tstr(M),member(Idx:T2,M),
-                            index(T,Idx,N),R1=rn(ti(32),N),R2=rn(ti(64),0),genreg(tp(T2),R4),
-                            add(vfield(R4,R3,R2,R1)).
   arr(eptr(Id),R1) :- arr(earray(Id,eint(ti(64),0)),R1).
+  arr(efield(Id,Idx),R4) :- arr(Id,R3),emit:t(R3,tp(T)),cut_t(T,T1),
+                            (T1=tstr(M) -> member(Idx:T2,M),
+                              index(T,Idx,N),R1=rn(ti(32),N),R2=rn(ti(64),0),genreg(tp(T2),R4),
+                              add(vfield(R4,R3,R2,R1))
+                            ;T1=tp(tstr(M)) -> arr(efield(eptr(Id),Idx),R4)
+                            ;throw(error:T)).
+  arr(ecast(T,E1),R3) :- arr(E1,R1),genreg(T,R2),add(vbitcast(R2,R1)),genreg(tp(T),R3),
+                         emit:id(R3,Id),add(valloca(rl(T,Id))),add(vstore(R2,R3)).
+  arr(eref(E1),R1) :- arr(E1,R1).
   arr(E,_) :- findall(env(Id,T),env(Id,T),Vs),throw(error:arr(E);Vs).
   index(T,Id,N) :- cut_t(T,T1),index1(T1,Id,N).
   index1(tstr(Ls),Id,N) :- !,nth0(N,Ls,Id:_).
@@ -57,7 +63,7 @@ term_expansion(P,:-true) :- start(_,_),assert(data(P)).
                                                             ;e(eassign(efield(E1,N),E),_)),Ls,Types).
   setAssign1(_,_,null).
   setAssign1(E1,tvariant(Types),etag(TagId, Ls)) :-
-    variantTagIdxAndStr(TagId, 0, Types,(TagIdx, StT, _)),
+    variantTagIdxAndStr(TagId, Types,(TagIdx, StT, _)),
     e(ecast(tp(StT), eref(E1)),StR),emit:id(StR,StRId),
     add_env(StRId, StT),StT=tstr(M),
     maplist([E,Id:_]>>e(eassign(efield(eid(StRId), Id), E),_),[eint(ti(32),TagIdx)|Ls],M).
@@ -72,6 +78,9 @@ term_expansion(P,:-true) :- start(_,_),assert(data(P)).
   e(eint(T,I),rn(T,I)) :- !.
   e(eadd(E1,E2),R3) :- e(E1,R1),e(E2,R2),emit:t(R1,T1),genreg(T1,R3),add(vbin(R3,add,R1,R2)).
   e(emul(E1,E2),R3) :- e(E1,R1),e(E2,R2),emit:t(R1,T1),genreg(T1,R3),add(vbin(R3,mul,R1,R2)).
+  e(ebin(E1,Op,E2),R3) :- e(E1,R1),e(E2,R2),emit:t(R1,T1),genreg(T1,R3),add(vbin(R3,Op,R1,R2)).
+  e(eswitch(E1,Ps),R) :- pattern(eswitch(E1,Ps),R).
+  e(eunit,null) :- !.
   e(eblock(Es),R) :- foldl([E,R,R1]>>e(E,R1),Es,rn(tv,void),R).
   e(eprint(E1),rn(tv,void)) :- !,e(E1,R1),add(vprint(R1)).
   e(evar(Id,T,E),R1) :- R1=rl(T,Id),add(valloca(R1)),add_env(Id,T),
@@ -94,6 +103,14 @@ term_expansion(P,:-true) :- start(_,_),assert(data(P)).
     (R0 \= null,R1 \= null,T0 \= tv,emit:t(R0,T0),emit:t(R1,T1),T0 = T1 ->
      genreg(T0,R2),add(vphi(R2,L0,L1,T0,R0,R1)) ; R2=null).
   e(E,_) :- writeln(error(compile:e(E))),halt(-1).
+  pattern(eswitch(E1,Ptns),R) :-
+    e(E1,R1),emit:t(R1,T1),cut_t(T1,tvariant(Vls)),genid("..",TagId),reverse(Ptns,RPtns),
+    e(evar(TagId,ti(32),eptr(ecast(tp(ti(32)),eref(E1)))),_),!,
+    foldl([etag(Id,Ptns1):BodyE,E,eif(ebin(eint(ti(32),PtnTagIdx),eq,eid(TagId)),eblock(B),E)]>>(
+      variantTagIdxAndStr(Id,Vls,(PtnTagIdx,PtnStTIdx,tstr(M))),
+      maplist([eid(A),N:T,evar(A,T,efield(ecast(tp(PtnStTIdx),eref(E1)),N))]>>!,Ptns1,M,BindEs),
+      append(BindEs,[BodyE],B),!
+    ),RPtns,eunit,IfE),!,e(IfE,R).
 :- end(compile).
 :- start(emit,[emit/2]).
   t(rl(T,_),T).
@@ -119,6 +136,12 @@ term_expansion(P,:-true) :- start(_,_),assert(data(P)).
   asm(S)              :- fp(FP),writeln(FP,S).
   asm(S,F)            :- fp(FP),maplist(call,F,F_),format(FP,S,F_),nl(FP).
   out(vbin(Id,add,A,B)) :- t(A,tp(T)),asm('\t~w = getelementptr inbounds ~w,~w ~w,~w ~w',[p(Id),pt(T),pt(A),p(A),pt(B),p(B)]),!.
+  out(vbin(Id,Op,A,B)) :- member(Op,[eq,ne]),!,compile:genreg(ti(1),R1),
+                          asm('\t~w = icmp ~w ~w ~w,~w',[p(R1),p(Op),pt(A),p(A),p(B)]),
+                          asm('\t~w = zext i1 ~w to ~w',[p(Id),p(R1),pt(Id)]).
+  out(vbin(Id,Op,A,B)) :- member(Op,[lt,le,gt,ge]),!,compile:genreg(ti(1),R1),
+                          asm('\t~w = icmp s~w ~w ~w, ~w',[p(R1),p(Op),pt(A),p(A),p(B)]),
+                          asm('\t~w = zext i1 ~w to ~w',[p(Id),p(R1),pt(Id)]).
   out(vbin(Id,Op,A,B)) :- asm('\t~w = ~w ~w ~w,~w',[p(Id),p(Op),pt(A),p(A),p(B)]),!.
   out(vprint(A)) :- asm('\tcall void @print_l(~w ~w)',[pt(A),p(A)]).
   out(valloca(R)) :- asm('\t~w = alloca ~w',[p(R),pt(R)]).
@@ -174,17 +197,26 @@ term_expansion(P,:-true) :- start(_,_),assert(data(P)).
 :- end(emit).
 :-compile([
     eassign(eid('Data'),etyp(
-        tvariant([
-          'A':tstr([a:ti(32)]),
-          'B':tstr([a:ti(32), b:ti(32)])
-        ])
-      )),
-    eassign(eid(main), efun([],tv, eblock([
-      evar(data,tname('Data'),etag('A',[eint(ti(32),555)]))
+      tvariant([
+        'A':tstr([a:ti(64)]),
+        'B':tstr([a:ti(64),b:ti(64)])
+      ])
+    )),
+    eassign(eid(main),efun([],tv,eblock([
+      evar(data,tname('Data'),etag('A',[eint(ti(64),555)])),
+      eswitch(eid(data),[
+        etag('A',[eid(a1)]):         eprint(eid(a1)),
+        etag('B',[eid(a2),eid('_')]):eprint(eid(a2))
+      ]),
+      evar(data2,tname('Data'),etag('B',[eint(ti(64),1),eint(ti(64),2)])),
+      eswitch(eid(data2),[
+        etag('A',[eid(a3)]):        eprint(eid(a3)),
+        etag('B',[eid(a4),eid(b4)]):eprint(eadd(eid(a4),eid(b4)))
+      ])
     ])))
   ],Codes),!,
-  emit('l16.ll',Codes),!,
-  shell('llc l16.ll -o l16.s'),
-  shell('gcc -static l16.s -o l16.exe'),
-  shell('./l16.exe').
+  emit('l17.ll',Codes),!,
+  shell('llc l17.ll -o l17.s'),
+  shell('gcc -static l17.s -o l17.exe'),
+  shell('./l17.exe').
 :-halt.
