@@ -91,8 +91,8 @@ term_expansion(P,:-true) :- start(_,_),assert(data(P)).
   out(vcomment(S)) :- asm('\t; ~w',[p(S)]).
   out(vcall(A,B,C)):- maplist([A1,A2]>>(pt(A1,T),p(A1,X),format(atom(A2),'~w ~w',[T,X])),C,Cs),
                       atomic_list_concat(Cs,',',S),
-                      asm('~w = call ~w ~w(~w) nounwind ssp',[p(A),pt(A),p(B),p(S)]).
-  out(vret(R1)) :- asm('ret ~w ~w',[pt(R1),p(R1)]).
+                      asm('\t~w = call ~w ~w(~w) nounwind ssp',[p(A),pt(A),p(B),p(S)]).
+  out(vret(R1)) :- asm('\tret ~w ~w',[pt(R1),p(R1)]).
   out(V) :- writeln(error:out(V)),halt.
   entry :-  asm('define i32 @main() {'),
             asm('entry:'),
