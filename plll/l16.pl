@@ -85,19 +85,19 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
   e(ecall(E1,Es),R0) :- e(E1,R1),maplist(e,Es,Rs),emit:t(R1,T1),
                         cut_t(T1,tfun(_,T)),genreg(T,R0),add(vcall(R0,R1,Rs)).
   e(eif(A,B,C),R2) :-
-    genid(ok,L0),genid(else,L1),genid(endif,L2),
+    genid(then,L0),genid(else,L1),genid(endif,L2),
     e(A,R),add(vjne(R,L0,L1)),% cond
     add(vlabel(L0)),e(B,R0),add(vgoto(L2)),% then
     add(vlabel(L1)),e(C,R1),add(vgoto(L2)),% else
-    add(vlabel(L2)),
-    (R0 \= null,R1 \= null,emit:t(R0,T0),emit:t(R1,T1),T0 \= tv,T0 = T1 ->
-     genreg(T0,R2),add(vphi(R2,L0,L1,T0,R0,R1)) ; R2=null).
+    add(vlabel(L2)),(emit:t(R0,T0),emit:t(R1,T1),T0\=tv,T0=T1 ->
+                     genreg(T0,R2),add(vphi(R2,L0,L1,T0,R0,R1));R2=null).
   e(E,_) :- writeln(error(compile:e(E))),halt(-1).
 :- end(compile).
 :- begin(emit,[emit/2]).
   t(rl(T,_),T).
   t(rn(T,_),T).
   t(rg(T,_),T).
+  t(null,tv).
   id(rl(_,Id),Id).
   id(rn(_,Id),Id).
   id(rg(_,Id),Id).
@@ -144,7 +144,8 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
             asm('\t%a_addr = alloca i64'),
             asm('\tstore i64 %a,i64* %a_addr'),
             asm('\t%0 = load i64,i64* %a_addr'),
-            asm('\t%1 = call i32 (i8*,...) @printf(i8* getelementptr inbounds ([5 x i8],[5 x i8]* @.str,i32 0,i32 0),i64 %0)'),
+            asm('\t%1 = call i32 (i8*,...) @printf(i8* ~w,i32 0,i32 0),i64 %0)',
+                [p('getelementptr inbounds ([5 x i8],[5 x i8]* @.str')]),
             asm('\tret void'),
             asm('}'),
             asm('declare i32 @printf(i8*,...)').

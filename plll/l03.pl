@@ -10,8 +10,8 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
   add(V) :- assert(v(V)).
   compile(E,Vs) :- resetid,e(E,_),findall(V,retract(v(V)),Vs).
   e(eint(I),rn(I)).
-  e(eadd(E1,E2),R3) :- e(E1,R1),e(E2,R2),genreg(R3),add(vbin(R3,add,R1,R2)).
-  e(emul(E1,E2),R3) :- e(E1,R1),e(E2,R2),genreg(R3),add(vbin(R3,mul,R1,R2)).
+  e(eadd(E1,E2),R) :- e(E1,R1),e(E2,R2),genreg(R),add(vbin(R,add,R1,R2)).
+  e(emul(E1,E2),R) :- e(E1,R1),e(E2,R2),genreg(R),add(vbin(R,mul,R1,R2)).
   e(eblock(Es),R) :- foldl([E,R,R1]>>e(E,R1),Es,rn(void),R).
   e(eprint(E1),R2) :- e(E1,R1),R2 = rn(void),add(vprint(R1)).
 :- end(compile).
@@ -20,9 +20,9 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
   p(rn(Id),Id).
   p(A,A) :- atom(A).
   asm(S)              :- fp(FP),writeln(FP,S).
-  asm(S,F)            :- fp(FP),maplist(p,F,F_),format(FP,S,F_),nl(FP).
-  out(vbin(Id,Op,A,B)) :- asm('\t~w = ~w i64 ~w,~w',[Id,Op,A,B]).
-  out(vprint(A)) :- asm('\tcall void @print_l(i64 ~w)',[A]).
+  asm(S,F)            :- fp(FP),maplist(call,F,F_),format(FP,S,F_),nl(FP).
+  out(vbin(Id,Op,A,B)) :- asm('\t~w = ~w i64 ~w,~w',[p(Id),p(Op),p(A),p(B)]).
+  out(vprint(A)) :- asm('\tcall void @print_l(i64 ~w)',[p(A)]).
   entry :-  asm('define i32 @main() {'),
             asm('entry:').
   leave :-  asm('\tret i32 0'),
@@ -33,7 +33,8 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
             asm('\t%a_addr = alloca i64'),
             asm('\tstore i64 %a,i64* %a_addr'),
             asm('\t%0 = load i64,i64* %a_addr'),
-            asm('\t%1 = call i32 (i8*,...) @printf(i8* getelementptr inbounds ([5 x i8],[5 x i8]* @.str,i32 0,i32 0),i64 %0)'),
+            asm('\t%1 = call i32 (i8*,...) @printf(i8* ~w,i64 %0)',
+                [p('getelementptr inbounds ([5 x i8],[5 x i8]* @.str,i32 0,i32 0)')]),
             asm('\tret void'),
             asm('}'),
             asm('declare i32 @printf(i8*,...)').
