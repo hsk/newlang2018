@@ -144,8 +144,8 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
             asm('\t%a_addr = alloca i64'),
             asm('\tstore i64 %a,i64* %a_addr'),
             asm('\t%0 = load i64,i64* %a_addr'),
-            asm('\t%1 = call i32 (i8*,...) @printf(i8* ~w,i32 0,i32 0),i64 %0)',
-                [p('getelementptr inbounds ([5 x i8],[5 x i8]* @.str')]),
+            asm('\t%1 = call i32 (i8*,...) @printf(i8* ~w,i64 %0)',
+                [p('getelementptr inbounds ([5 x i8],[5 x i8]* @.str,i32 0,i32 0)')]),
             asm('\tret void'),
             asm('}'),
             asm('declare i32 @printf(i8*,...)').
