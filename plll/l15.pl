@@ -77,11 +77,11 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
   e(ecall(E1,Es),R0) :- e(E1,R1),maplist(e,Es,Rs),emit:t(R1,T1),
                         cut_t(T1,tfun(_,T)),genreg(T,R0),add(vcall(R0,R1,Rs)).
   e(eif(A,B,C),R2) :-
-    genid(ok,Id0),genid(else,Id1),genid(else,L0),genid(endif,Id2),genid(endif,L1),
-    e(A,R),add(vjne(R,Id0,Id0,Id1)),% cond
-    e(B,R0),add(vlabel(L0,L0)),add(vgoto(Id1,Id2)),% then
-    e(C,R1),add(vlabel(L1,L1)),add(vgoto(Id2,Id2)),% else
-    emit:t(R0,T0),emit:t(R1,T1),
+    genid(ok,L0),genid(else,L1),genid(endif,L2),
+    e(A,R),add(vjne(R,L0,L1)),% cond
+    add(vlabel(L0)),e(B,R0),add(vgoto(L2)),% then
+    add(vlabel(L1)),e(C,R1),add(vgoto(L2)),% else
+    add(vlabel(L2)),
     (R0 \= null,R1 \= null,emit:t(R0,T0),emit:t(R1,T1),T0 \= tv,T0 = T1 ->
      genreg(T0,R2),add(vphi(R2,L0,L1,T0,R0,R1)) ; R2=null).
   e(E,_) :- writeln(error(compile:e(E))),halt(-1).
@@ -122,14 +122,11 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
                       atomic_list_concat(Cs,',',S),
                       asm('\t~w = call ~w ~w(~w) nounwind ssp',[p(A),pt(A),p(B),p(S)]).
   out(vret(R1)) :- asm('\tret ~w ~w',[pt(R1),p(R1)]).
-  out(vjne(R,L,J1,J2)) :-       compile:genid('%reg_',R1),
+  out(vjne(R,J1,J2)) :-         compile:genid('%reg_',R1),
                                 asm('\t~w = icmp ne ~w ~w,0',[p(R1),pt(R),p(R)]),
-                                asm('\tbr i1 ~w,label %~w,label %~w',[p(R1),p(J1),p(J2)]),
-                                asm('~w:',[p(L)]).
-  out(vgoto(L,J)) :-            asm('\tbr label %~w',[p(J)]),
-                                (L=null ; asm('~w:',[p(L)])).
-  out(vlabel(J,L)) :-           (J=null ;asm('\tbr label %~w',[p(J)])),
-                                asm('~w:',[p(L)]).
+                                asm('\tbr i1 ~w,label %~w,label %~w',[p(R1),p(J1),p(J2)]).
+  out(vgoto(J)) :-              asm('\tbr label %~w',[p(J)]).
+  out(vlabel(L)) :-             asm('~w:',[p(L)]).
   out(vphi(R,L1,L2,T,R1,R2)) :- asm('\t~w = phi ~w[~w,%~w],[~w,%~w]',[p(R),pt(T),p(R1),p(L1),p(R2),p(L2)]).
   out(V) :- writeln(error:out(V)),halt.
   printl :- asm('@.str = private constant [5 x i8] c"%ld\\0A\\00"'),
