@@ -5,26 +5,25 @@ term_expansion(:-end(M),:-true) :- retract(begin(M,E)),forall(retract(data(P)),M
 term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
 :- op(1200,xfx,::=).
 :- op(650,xfx,∈).
+:- op(250,yf,*).
 :- begin(syntax,[syntax/2]).
   G∈{G}. G∈(G|_). G∈(_|G1):-G∈G1. G∈G.
   syntax(G,E):-G=..[O|Gs],E=..[O|Es],maplist(syntax,Gs,Es),!.
   syntax(G,E):-(G::=Gs),!,G1∈Gs,syntax(G1,E),!.
   syntax(i,I):-integer(I),!.
   syntax(id,I):- atom(I),!.
-  syntax(list(E),Ls) :- maplist(syntax(E),Ls).
-  t ::= tv | ti(i) | tp(t) | tarr(t,i) | tstr(list(id:t)) | tname(id) | tfun(list(t),t)
-      | tvariant(list(id:tstr(list(id:t)))).
-  e ::= eint(ti(i),i) | eadd(e,e) | emul(e,e) | eprint(e) | eblock(list(e))
+  syntax(E*,Ls) :- maplist(syntax(E),Ls).
+  t ::= tv | ti(i) | tp(t) | tarr(t,i) | tstr((id:t)*) | tname(id) | tfun(t*,t)
+      | tvariant((id:tstr((id:t)*))*).
+  e ::= eint(ti(i),i) | eadd(e,e) | emul(e,e) | eprint(e) | eblock(e*)
       | evar(id,t,e) | eid(id) | eassign(e,e) | earray(e,e) | efield(e,id)
-      | eref(e) | eptr(e) | ecall(e,list(e)) | null | etuple(list(e)) | eif(e,e,e)
-      | etag(id,list(e)) | ecast(t,e) | ebin(e,id,e) | eswitch(e,list(e:e)) | eunit.
-  g ::= eassign(eid(id),etyp(t)) | eassign(eid(id),efun(list(id:t),t,e)).
-  gs ::= list(g).
+      | eref(e) | eptr(e) | ecall(e,e*) | null | etuple(e*) | eif(e,e,e)
+      | etag(id,e*) | ecast(t,e) | ebin(e,id,e) | eswitch(e,(e:e)*) | eunit.
+  g ::= eassign(eid(id),etyp(t)) | eassign(eid(id),efun((id:t)*,t,e)).
   r ::= rl(t,id) | rn(t,i) | rg(t,id).
   v ::= vprint(r) | vbin(r,id,r,r) | valloca(r) | vload(r,r) | vstore(r,r) | vfield(r,r,r,r)
-      | vcomment(id) | vfun(id,list(id:t),t,vs) | vret(r) | vcall(r,r,list(r))
+      | vcomment(id) | vfun(id,(id:t)*,t,v*) | vret(r) | vcall(r,r,r*)
       | vjne(r,id,id) | vgoto(id) | vlabel(id) | vphi(r,id,id,t,r,r) | vbitcast(r,r).
-  vs ::= list(v).
 :- end(syntax).
 :- begin(compile,[compile/2,str/2]).
   resetid     :- retractall(id(_)),assert(id(0)).
@@ -89,7 +88,7 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
     add_env(StRId, StT),StT=tstr(M),
     maplist([E,Id:_]>>e(eassign(efield(eid(StRId), Id), E),_),[eint(ti(32),TagIdx)|Ls],M).
   setAssign1(_,T,E) :- throw(error:setAssign(T,E)).
-  compile(Es,Fs) :- syntax(gs,Es),resetid,dynamic(str/2),dynamic(env/2),
+  compile(Es,Fs) :- syntax(g*,Es),resetid,dynamic(str/2),dynamic(env/2),
                     forall(member(E,Es),g(E)),findall(F,func(F),Fs).
   g(eassign(eid(A),efun(Prms,T,Body))) :-
     push,findall(T,(member(S:T,Prms),add_env(S,T)),Ts),e(Body,R),cut_t(T,T1),
@@ -234,7 +233,7 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
       ])
     ])))
   ],Codes),!,
-  syntax(vs,Codes),
+  syntax(v*,Codes),
   emit('l17.ll',Codes),!,
   shell('llc l17.ll -o l17.s'),
   shell('gcc -static l17.s -o l17.exe'),

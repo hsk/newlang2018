@@ -5,19 +5,19 @@ term_expansion(:-end(M),:-true) :- retract(begin(M,E)),forall(retract(data(P)),M
 term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
 :- op(1200,xfx,::=).
 :- op(650,xfx,∈).
+:- op(250,yf,*).
 :- begin(syntax,[syntax/2]).
   G∈{G}. G∈(G|_). G∈(_|G1):-G∈G1. G∈G.
   syntax(G,E):-G=..[O|Gs],E=..[O|Es],maplist(syntax,Gs,Es),!.
   syntax(G,E):-(G::=Gs),!,G1∈Gs,syntax(G1,E),!.
   syntax(i,I):-integer(I),!.
   syntax(id,I):- atom(I),!.
-  syntax(list(E),Ls) :- maplist(syntax(E),Ls).
+  syntax(E*,Ls) :- maplist(syntax(E),Ls).
   t ::= tv | ti(i) | tp(t).
-  e ::= eint(i) | eadd(e,e) | emul(e,e) | eprint(e) | eblock(list(e))
+  e ::= eint(i) | eadd(e,e) | emul(e,e) | eprint(e) | eblock(e*)
       | evar(id,t) | eid(id) | eassign(e,e).
   r ::= rl(t,id) | rn(t,i).
   v ::= vprint(r) | vbin(r,id,r,r) | valloca(r) | vload(r,r) | vstore(r,r).
-  vs ::= list(v).
 :- end(syntax).
 :- begin(compile,[compile/2]).
   resetid    :- retractall(id(_)),assert(id(0)).
@@ -78,7 +78,7 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
     eassign(eid(c),eadd(eint(10),eint(5))),
     eprint(eid(c))
   ]),Codes),
-  syntax(vs,Codes),
+  syntax(v*,Codes),
   emit('l05.ll',Codes),!,
   shell('llc l05.ll -o l05.s'),
   shell('gcc -static l05.s -o l05.exe'),

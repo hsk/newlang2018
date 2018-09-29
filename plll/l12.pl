@@ -5,23 +5,22 @@ term_expansion(:-end(M),:-true) :- retract(begin(M,E)),forall(retract(data(P)),M
 term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
 :- op(1200,xfx,::=).
 :- op(650,xfx,∈).
+:- op(250,yf,*).
 :- begin(syntax,[syntax/2]).
   G∈{G}. G∈(G|_). G∈(_|G1):-G∈G1. G∈G.
   syntax(G,E):-G=..[O|Gs],E=..[O|Es],maplist(syntax,Gs,Es),!.
   syntax(G,E):-(G::=Gs),!,G1∈Gs,syntax(G1,E),!.
   syntax(i,I):-integer(I),!.
   syntax(id,I):- atom(I),!.
-  syntax(list(E),Ls) :- maplist(syntax(E),Ls).
-  t ::= tv | ti(i) | tp(t) | tarr(t,i) | tstr(list(id:t)) | tname(id) | tfun(list(t),t).
-  e ::= eint(ti(i),i) | eadd(e,e) | emul(e,e) | eprint(e) | eblock(list(e))
+  syntax(E*,Ls) :- maplist(syntax(E),Ls).
+  t ::= tv | ti(i) | tp(t) | tarr(t,i) | tstr((id:t)*) | tname(id) | tfun(t*,t).
+  e ::= eint(ti(i),i) | eadd(e,e) | emul(e,e) | eprint(e) | eblock(e*)
       | evar(id,t) | eid(id) | eassign(e,e) | earray(e,e) | efield(e,id)
-      | eref(e) | eptr(e) | ecall(e,list(e)).
-  g ::= eassign(eid(id),etyp(t)) | eassign(eid(id),efun(list(id:t),t,e)).
-  gs ::= list(g).
+      | eref(e) | eptr(e) | ecall(e,e*).
+  g ::= eassign(eid(id),etyp(t)) | eassign(eid(id),efun((id:t)*,t,e)).
   r ::= rl(t,id) | rn(t,i) | rg(t,id).
   v ::= vprint(r) | vbin(r,id,r,r) | valloca(r) | vload(r,r) | vstore(r,r) | vfield(r,r,r,r)
-      | vcomment(id) | vfun(id,list(id:t),t,vs) | vret(r) | vcall(r,r,list(r)).
-  vs ::= list(v).
+      | vcomment(id) | vfun(id,(id:t)*,t,v*) | vret(r) | vcall(r,r,r*).
 :- end(syntax).
 :- begin(compile,[compile/2,str/2]).
   resetid     :- retractall(id(_)),assert(id(0)).
@@ -55,7 +54,7 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
   index(T,Id,N) :- cut_t(T,T1),index1(T1,Id,N).
   index1(tstr(Ls),Id,N) :- !,nth0(N,Ls,Id:_).
   index1(_,_,_) :- throw(error).
-  compile(Es,Fs) :- syntax(gs,Es),resetid,dynamic(str/2),forall(member(E,Es),g(E)),findall(F,func(F),Fs).
+  compile(Es,Fs) :- syntax(g*,Es),resetid,dynamic(str/2),forall(member(E,Es),g(E)),findall(F,func(F),Fs).
   g(eassign(eid(A),efun(Prms,T,Body))) :-
     push,findall(T,(member(S:T,Prms),add_env(S,T)),Ts),e(Body,R),cut_t(T,T1),
     (T1=tv -> add(vret(rn(ti(32),0))),T2=ti(32) ; add(vret(R)),T2=T1),
@@ -159,7 +158,7 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
       eprint(ecall(eid(add),[eint(ti(64),3),eint(ti(64),4)]))
     ])))
   ],Codes),!,
-  syntax(vs,Codes),
+  syntax(v*,Codes),
   emit('l12.ll',Codes),!,
   shell('llc l12.ll -o l12.s'),
   shell('gcc -static l12.s -o l12.exe'),

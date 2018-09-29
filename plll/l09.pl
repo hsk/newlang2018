@@ -5,19 +5,19 @@ term_expansion(:-end(M),:-true) :- retract(begin(M,E)),forall(retract(data(P)),M
 term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
 :- op(1200,xfx,::=).
 :- op(650,xfx,∈).
+:- op(250,yf,*).
 :- begin(syntax,[syntax/2]).
   G∈{G}. G∈(G|_). G∈(_|G1):-G∈G1. G∈G.
   syntax(G,E):-G=..[O|Gs],E=..[O|Es],maplist(syntax,Gs,Es),!.
   syntax(G,E):-(G::=Gs),!,G1∈Gs,syntax(G1,E),!.
   syntax(i,I):-integer(I),!.
   syntax(id,I):- atom(I),!.
-  syntax(list(E),Ls) :- maplist(syntax(E),Ls).
-  t ::= tv | ti(i) | tp(t) | tarr(t,i) | tstr(list(id:t)).
-  e ::= eint(i) | eadd(e,e) | emul(e,e) | eprint(e) | eblock(list(e))
+  syntax(E*,Ls) :- maplist(syntax(E),Ls).
+  t ::= tv | ti(i) | tp(t) | tarr(t,i) | tstr((id:t)*).
+  e ::= eint(i) | eadd(e,e) | emul(e,e) | eprint(e) | eblock(e*)
       | evar(id,t) | eid(id) | eassign(e,e) | earray(e,e) | efield(e,id).
   r ::= rl(t,id) | rn(t,i).
   v ::= vprint(r) | vbin(r,id,r,r) | valloca(r) | vload(r,r) | vstore(r,r) | vfield(r,r,r,r).
-  vs ::= list(v).
 :- end(syntax).
 :- begin(compile,[compile/2,str/2]).
   resetid     :- retractall(id(_)),assert(id(0)).
@@ -103,7 +103,7 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
     eprint(efield(efield(eid(b),y),a)),
     eprint(eadd(efield(eid(b),x),efield(efield(eid(b),y),a)))
   ]),Codes),!,
-  syntax(vs,Codes),
+  syntax(v*,Codes),
   emit('l09.ll',Codes),!,
   shell('llc l09.ll -o l09.s'),
   shell('gcc -static l09.s -o l09.exe'),
