@@ -20,7 +20,7 @@ gen_edges(G,Es) :- dynamic(es/1),maplist(gen_edges_bb,G),findall(E,retract(es(E)
 :- use_module(liveness).
 prms(Ps,Ps_) :- regps(Regps),length(Regps,L),
                 findall(P:R,(nth0(I,Ps,P),nth0(I,Regps,R)),M),
-                findall(P:R,(nth0(I,Ps,P),I>=L,C is (I-L+2)*8,atom_concat(C,'(%rbp)',R)),M2),
+                findall(P:R,(nth0(I,Ps,P),I>=L,C is (I-L+2)*8,R=ptr(\rbp,C)),M2),
                 append(M,M2,M3),maplist(prms1,M3,Ps_).
 prms1(_:A1,A1).
 alloc_m(A:I,(Regs,I2R,M),(Regs,I2R,M2)) :- member(I:R,I2R),!,(member(A:_,M)->M2=M;M2=[A:R|M]).

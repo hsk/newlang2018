@@ -1,4 +1,4 @@
-:- use_module([genCode,memAlloc,graphRegAlloc,linearScanRegAlloc,genAmd64]).
+:- use_module([syntax,genCode,memAlloc,graphRegAlloc,linearScanRegAlloc,genAmd64]).
 expr(I,I) :- integer(I),!.
 expr(A,A) :- atom(A),!.
 expr(E1+E2,bin(addq,E1_,E2_)) :- expr(E1,E1_),expr(E2,E2_).
@@ -12,8 +12,9 @@ stmt(while(E,S),while(E_,S_)) :- expr(E,E_),maplist(stmt,S,S_).
 stmt(S,S_) :- expr(S,S_).
 func(NP=B,N:P=B_) :- compound_name_arguments(NP,N,P),maplist(stmt,B,B_).
 parse(Fs,Fs_) :- maplist(func,Fs,Fs_),!.
-parseFile(File,Fs_) :- read_file_to_terms(File,Fs,[]),parse(Fs,Fs_).
-compile(Alloc,File) :- parseFile(File,P),genCode(P,E),call(Alloc,E,M),genAmd64('a.s',M).
+readFile(File,Fs) :- read_file_to_terms(File,Fs,[]).
+compile(Alloc,File) :- readFile(File,P),syntax(p,P),parse(P,A),syntax(a,A),
+                       genCode(A,C),syntax(c,C),call(Alloc,C,R),syntax(r,R),genAmd64('a.s',R).
 main([Src])       :- compile(memAlloc,Src).
 main(['-O1',Src]) :- compile(linearScanRegAlloc,Src).
 main(['-O2',Src]) :- compile(regAlloc,Src).
