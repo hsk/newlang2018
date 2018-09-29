@@ -3,6 +3,22 @@ term_expansion(:-begin(M,E),:-true) :- assert(begin(M,E)).
 term_expansion(:-end(M),:-true) :- retract(begin(M,E)),forall(retract(data(P)),M:assert(P)),
                                    forall(member(P1,E),(M:export(M:P1),user:import(M:P1))).
 term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
+:- op(1200,xfx,::=).
+:- op(650,xfx,∈).
+:- begin(syntax,[syntax/2]).
+  G∈{G}. G∈(G|_). G∈(_|G1):-G∈G1. G∈G.
+  syntax(G,E):-G=..[O|Gs],E=..[O|Es],maplist(syntax,Gs,Es),!.
+  syntax(G,E):-(G::=Gs),!,G1∈Gs,syntax(G1,E),!.
+  syntax(i,I):-integer(I),!.
+  syntax(id,I):- atom(I),!.
+  syntax(list(E),Ls) :- maplist(syntax(E),Ls).
+  t ::= tv | ti(i) | tp(t) | tarr(t,i).
+  e ::= eint(i) | eadd(e,e) | emul(e,e) | eprint(e) | eblock(list(e))
+      | evar(id,t) | eid(id) | eassign(e,e) | earray(id,e).
+  r ::= rl(t,id) | rn(t,i).
+  v ::= vprint(r) | vbin(r,id,r,r) | valloca(r) | vload(r,r) | vstore(r,r) | vfield(r,r,r,r).
+  vs ::= list(v).
+:- end(syntax).
 :- begin(compile,[compile/2]).
   resetid     :- retractall(id(_)),assert(id(0)).
   genid(S,A)  :- retract(id(C)),C1 is C+1,assert(id(C1)),format(atom(A),'~w~w',[S,C]).
@@ -12,7 +28,7 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
   arr(earray(Id,E),R4) :- e(E,R1),R2=rn(ti(64),0),env(Id,T),R3=rl(tp(T),Id),
                           genreg(tp(ti(64)),R4),add(vfield(R4,R3,R2,R1)).
   arr(_,_) :- throw(error).
-  compile(E,Vs) :- resetid,e(E,_),findall(V,retract(v(V)),Vs).
+  compile(E,Vs) :- syntax(e,E),resetid,e(E,_),findall(V,retract(v(V)),Vs).
   e(eint(I),rn(ti(64),I)).
   e(eadd(E1,E2),R3) :- e(E1,R1),e(E2,R2),genreg(ti(64),R3),add(vbin(R3,add,R1,R2)).
   e(emul(E1,E2),R3) :- e(E1,R1),e(E2,R2),genreg(ti(64),R3),add(vbin(R3,mul,R1,R2)).
@@ -67,6 +83,7 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
     eassign(earray(a,eint(1)),eint(3)),
     eprint(earray(a,eint(1)))
   ]),Codes),
+  syntax(vs,Codes),
   emit('l06.ll',Codes),!,
   shell('llc l06.ll -o l06.s'),
   shell('gcc -static l06.s -o l06.exe'),

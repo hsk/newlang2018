@@ -3,6 +3,24 @@ term_expansion(:-begin(M,E),:-true) :- assert(begin(M,E)).
 term_expansion(:-end(M),:-true) :- retract(begin(M,E)),forall(retract(data(P)),M:assert(P)),
                                    forall(member(P1,E),(M:export(M:P1),user:import(M:P1))).
 term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
+:- op(1200,xfx,::=).
+:- op(650,xfx,∈).
+:- begin(syntax,[syntax/2]).
+  G∈{G}. G∈(G|_). G∈(_|G1):-G∈G1. G∈G.
+  syntax(G,E):-G=..[O|Gs],E=..[O|Es],maplist(syntax,Gs,Es),!.
+  syntax(G,E):-(G::=Gs),!,G1∈Gs,syntax(G1,E),!.
+  syntax(i,I):-integer(I),!.
+  syntax(id,I):- atom(I),!.
+  syntax(list(E),Ls) :- maplist(syntax(E),Ls).
+  t ::= tv | ti(i) | tp(t) | tarr(t,i) | tstr(list(id:t)) | tname(id).
+  e ::= eint(i) | eadd(e,e) | emul(e,e) | eprint(e) | eblock(list(e))
+      | evar(id,t) | eid(id) | eassign(e,e) | earray(e,e) | efield(e,id)
+      | eref(e) | eptr(e) | etyp(t).
+  r ::= rl(t,id) | rn(t,i).
+  v ::= vprint(r) | vbin(r,id,r,r) | valloca(r) | vload(r,r) | vstore(r,r) | vfield(r,r,r,r)
+      | vcomment(id).
+  vs ::= list(v).
+:- end(syntax).
 :- begin(compile,[compile/2,str/2]).
   resetid     :- retractall(id(_)),assert(id(0)).
   genid(S,A)  :- retract(id(C)),C1 is C+1,assert(id(C1)),format(atom(A),'~w~w',[S,C]).
@@ -33,7 +51,7 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
   index(T,Id,N) :- cut_t(T,T1),index1(T1,Id,N).
   index1(tstr(Ls),Id,N) :- !,nth0(N,Ls,Id:_).
   index1(_,_,_) :- throw(error).
-  compile(E,Vs) :- resetid,dynamic(str/2),e(E,_),findall(V,retract(v(V)),Vs).
+  compile(E,Vs) :- syntax(e,E),resetid,dynamic(str/2),e(E,_),findall(V,retract(v(V)),Vs).
   e(eint(I),rn(ti(64),I)) :- !.
   e(eadd(E1,E2),R3) :- e(E1,R1),e(E2,R2),emit:t(R1,T1),genreg(T1,R3),add(vbin(R3,add,R1,R2)).
   e(emul(E1,E2),R3) :- e(E1,R1),e(E2,R2),emit:t(R1,T1),genreg(T1,R3),add(vbin(R3,mul,R1,R2)).
@@ -107,6 +125,7 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
     eprint(efield(efield(eid(b),y),a)),
     eprint(eadd(efield(eid(b),x),efield(efield(eid(b),y),a)))
   ]),Codes),!,
+  syntax(vs,Codes),
   emit('l11.ll',Codes),!,
   shell('llc l11.ll -o l11.s'),
   shell('gcc -static l11.s -o l11.exe'),

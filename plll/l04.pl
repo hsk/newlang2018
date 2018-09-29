@@ -6,17 +6,17 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
 :- op(1200,xfx,::=).
 :- op(650,xfx,∈).
 :- begin(syntax,[syntax/2]).
-G∈{G}. G∈(G|_). G∈(_|G1):-G∈G1. G∈G.
-syntax(G,E):-G=..[O|Gs],E=..[O|Es],maplist(syntax,Gs,Es),!.
-syntax(G,E):-(G::=Gs),!,G1∈Gs,syntax(G1,E),!.
-syntax(i,I):-integer(I),!.
-syntax(id,I):- atom(I),!.
-syntax(list(E),Ls) :- maplist(syntax(E),Ls).
-t ::= tv | ti(i).
-e ::= eint(i) | eadd(e,e) | emul(e,e) | eprint(e) | eblock(list(e)).
-r ::= rl(t,id) | rn(t,i).
-v ::= vprint(r) | vbin(r,id,r,r).
-vs ::= list(v).
+  G∈{G}. G∈(G|_). G∈(_|G1):-G∈G1. G∈G.
+  syntax(G,E):-G=..[O|Gs],E=..[O|Es],maplist(syntax,Gs,Es),!.
+  syntax(G,E):-(G::=Gs),!,G1∈Gs,syntax(G1,E),!.
+  syntax(i,I):-integer(I),!.
+  syntax(id,I):- atom(I),!.
+  syntax(list(E),Ls) :- maplist(syntax(E),Ls).
+  t ::= tv | ti(i).
+  e ::= eint(i) | eadd(e,e) | emul(e,e) | eprint(e) | eblock(list(e)).
+  r ::= rl(t,id) | rn(t,i).
+  v ::= vprint(r) | vbin(r,id,r,r).
+  vs ::= list(v).
 :- end(syntax).
 :- begin(compile,[compile/2]).
   resetid     :- retractall(id(_)),assert(id(0)).

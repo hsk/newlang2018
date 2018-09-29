@@ -3,6 +3,22 @@ term_expansion(:-begin(M,E),:-true) :- assert(begin(M,E)).
 term_expansion(:-end(M),:-true) :- retract(begin(M,E)),forall(retract(data(P)),M:assert(P)),
                                    forall(member(P1,E),(M:export(M:P1),user:import(M:P1))).
 term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
+:- op(1200,xfx,::=).
+:- op(650,xfx,∈).
+:- begin(syntax,[syntax/2]).
+  G∈{G}. G∈(G|_). G∈(_|G1):-G∈G1. G∈G.
+  syntax(G,E):-G=..[O|Gs],E=..[O|Es],maplist(syntax,Gs,Es),!.
+  syntax(G,E):-(G::=Gs),!,G1∈Gs,syntax(G1,E),!.
+  syntax(i,I):-integer(I),!.
+  syntax(id,I):- atom(I),!.
+  syntax(list(E),Ls) :- maplist(syntax(E),Ls).
+  t ::= tv | ti(i) | tp(t) | tarr(t,i).
+  e ::= eint(i) | eadd(e,e) | emul(e,e) | eprint(e) | eblock(list(e))
+      | evar(id,t) | eid(id) | eassign(e,e) | earray(e,e).
+  r ::= rl(t,id) | rn(t,i).
+  v ::= vprint(r) | vbin(r,id,r,r) | valloca(r) | vload(r,r) | vstore(r,r) | vfield(r,r,r,r).
+  vs ::= list(v).
+:- end(syntax).
 :- begin(compile,[compile/2]).
   resetid     :- retractall(id(_)),assert(id(0)).
   genid(S,A)  :- retract(id(C)),C1 is C+1,assert(id(C1)),format(atom(A),'~w~w',[S,C]).
@@ -13,7 +29,7 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
   arr(earray(Id,E),R4) :- !,e(E,R1),R2=rn(ti(64),0),arr(Id,R3),
                           emit:t(R3,T),cut(T,T4),genreg(T4,R4),add(vfield(R4,R3,R2,R1)).
   arr(E,_) :- findall(env(Id,T),env(Id,T),Vs),throw(error:arr(E);Vs).
-  compile(E,Vs) :- resetid,e(E,_),findall(V,retract(v(V)),Vs).
+  compile(E,Vs) :- syntax(e,E),resetid,e(E,_),findall(V,retract(v(V)),Vs).
   e(eint(I),rn(ti(64),I)).
   e(eadd(E1,E2),R3) :- e(E1,R1),e(E2,R2),genreg(ti(64),R3),add(vbin(R3,add,R1,R2)).
   e(emul(E1,E2),R3) :- e(E1,R1),e(E2,R2),genreg(ti(64),R3),add(vbin(R3,mul,R1,R2)).
@@ -71,6 +87,7 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
     eassign(earray(earray(eid(b), eint(1)),eint(2)), eint(3)),
     eprint(earray(earray(eid(b), eint(1)),eint(2)))
   ]),Codes),
+  syntax(vs,Codes),
   emit('l07.ll',Codes),!,
   shell('llc l07.ll -o l07.s'),
   shell('gcc -static l07.s -o l07.exe'),
