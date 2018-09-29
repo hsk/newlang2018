@@ -69,14 +69,13 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
     add(vlabel(L0)),e(B,R0),add(vgoto(L2)),% then
     add(vlabel(L1)),e(C,R1),add(vgoto(L2)),% else
     add(vlabel(L2)),(emit:t(R0,T0),emit:t(R1,T1),T0\=tv,T0=T1 ->
-                     genreg(T0,R2),add(vphi(R2,L0,L1,T0,R0,R1));R2=null).
+                     genreg(T0,R2),add(vphi(R2,L0,L1,T0,R0,R1));R2=rn(tv,null)).
   e(E,_) :- writeln(error(compile:e(E))),halt(-1).
 :- end(compile).
 :- begin(emit,[emit/2]).
   t(rl(T,_),T).
   t(rn(T,_),T).
   t(rg(T,_),T).
-  t(null,tv).
   id(rl(_,Id),Id).
   id(rn(_,Id),Id).
   id(rg(_,Id),Id).

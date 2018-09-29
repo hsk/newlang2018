@@ -23,11 +23,11 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
   add(V) :- assert(v(V)).
   size(tstr(M),S) :- genid('.',Id),add_str(tstr(M),Id),
                      foldl([_:T,S1,S2]>>(size(T,TS),S2 is S1+TS),M,0,S).
-  size(ti(N),S) :- S is N div 8.
+  size(ti(N),S) :- S is (N+7) div 8.
   size(tv,0).
   size(tp(_),8).
   size(tfun(_,_),8).
-  size(tariant(M),S) :- variantInfo(tariant(M),(_,M)),size(M,S).
+  size(tvariant(M),S) :- variantInfo(tvariant(M),(_,M)),size(M,S).
   variantInfo(tvariant(Ls),(T,Maxt)) :- foldl([_:tstr(M),(N,T),(N2,T2)]>>(
                                             VT2=tstr(['__tagIndex':ti(32)|M]),size(VT2,SizeVT),
                                             (SizeVT > N -> (N2,T2)=(SizeVT,VT2) ; (N2,T2)=(N,T))
@@ -78,7 +78,7 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
   e(emul(E1,E2),R3) :- e(E1,R1),e(E2,R2),emit:t(R1,T1),genreg(T1,R3),add(vbin(R3,mul,R1,R2)).
   e(ebin(E1,Op,E2),R3) :- e(E1,R1),e(E2,R2),emit:t(R1,T1),genreg(T1,R3),add(vbin(R3,Op,R1,R2)).
   e(eswitch(E1,Ps),R) :- pattern(eswitch(E1,Ps),R).
-  e(eunit,null) :- !.
+  e(eunit,tn(tv,null)) :- !.
   e(eblock(Es),R) :- foldl([E,R,R1]>>e(E,R1),Es,rn(tv,void),R).
   e(eprint(E1),rn(tv,void)) :- !,e(E1,R1),add(vprint(R1)).
   e(evar(Id,T,E),R1) :- R1=rl(T,Id),add(valloca(R1)),add_env(Id,T),
@@ -99,10 +99,10 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
     add(vlabel(L0)),e(B,R0),add(vgoto(L2)),% then
     add(vlabel(L1)),e(C,R1),add(vgoto(L2)),% else
     add(vlabel(L2)),(emit:t(R0,T0),emit:t(R1,T1),T0\=tv,T0=T1 ->
-                     genreg(T0,R2),add(vphi(R2,L0,L1,T0,R0,R1));R2=null).
+                     genreg(T0,R2),add(vphi(R2,L0,L1,T0,R0,R1));R2=rn(tv,null)).
   e(E,_) :- writeln(error(compile:e(E))),halt(-1).
   pattern(eswitch(E1,Ptns),R) :-
-    e(E1,R1),emit:t(R1,T1),cut_t(T1,tvariant(Vls)),genid("..",TagId),reverse(Ptns,RPtns),
+    e(E1,R1),emit:t(R1,T1),cut_t(T1,tvariant(Vls)),genid('..',TagId),reverse(Ptns,RPtns),
     e(evar(TagId,ti(32),eptr(ecast(tp(ti(32)),eref(E1)))),_),!,
     foldl([etag(Id,Ptns1):BodyE,E,eif(ebin(eint(ti(32),PtnTagIdx),eq,eid(TagId)),eblock(B),E)]>>(
       variantTagIdxAndStr(Id,Vls,(PtnTagIdx,PtnStTIdx,tstr(M))),
@@ -114,7 +114,6 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
   t(rl(T,_),T).
   t(rn(T,_),T).
   t(rg(T,_),T).
-  t(null,tv).
   id(rl(_,Id),Id).
   id(rn(_,Id),Id).
   id(rg(_,Id),Id).

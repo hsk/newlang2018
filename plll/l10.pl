@@ -68,8 +68,8 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
   entry :-  asm('define i32 @main() {'),
             asm('entry:').
   leave :-  asm('\tret i32 0'),
-            asm('}'),
-            asm('@.str = private constant [5 x i8] c"%ld\\0A\\00"'),
+            asm('}').
+  printl :- asm('@.str = private constant [5 x i8] c"%ld\\0A\\00"'),
             asm('define void @print_l(i64 %a) {'),
             asm('entry:'),
             asm('\t%a_addr = alloca i64'),
@@ -86,7 +86,7 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
           )).
   emit(File,Vs) :- setup_call_cleanup(
                     (open(File,write,FP),assert(fp(FP))),
-                    (strs,entry,maplist(out,Vs),leave),
+                    (strs,entry,maplist(out,Vs),leave,printl),
                     (close(FP),retract(fp(_)))).
 :- end(emit).
 :-compile(eblock([

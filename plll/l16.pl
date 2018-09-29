@@ -23,11 +23,11 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
   add(V) :- assert(v(V)).
   size(tstr(M),S) :- genid('.',Id),add_str(tstr(M),Id),
                      foldl([_:T,S1,S2]>>(size(T,TS),S2 is S1+TS),M,0,S).
-  size(ti(N),S) :- S is N div 8.
+  size(ti(N),S) :- S is (N+7) div 8.
   size(tv,0).
   size(tp(_),8).
   size(tfun(_,_),8).
-  size(tariant(M),S) :- variantInfo(tariant(M),(_,M)),size(M,S).
+  size(tvariant(M),S) :- variantInfo(tvariant(M),(_,M)),size(M,S).
   variantInfo(tvariant(Ls),(T,Maxt)) :- foldl([_:tstr(M),(N,T),(N2,T2)]>>(
                                             VT2=tstr(['__tagIndex':ti(32)|M]),size(VT2,SizeVT),
                                             (SizeVT > N -> (N2,T2)=(SizeVT,VT2) ; (N2,T2)=(N,T))
@@ -90,14 +90,13 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
     add(vlabel(L0)),e(B,R0),add(vgoto(L2)),% then
     add(vlabel(L1)),e(C,R1),add(vgoto(L2)),% else
     add(vlabel(L2)),(emit:t(R0,T0),emit:t(R1,T1),T0\=tv,T0=T1 ->
-                     genreg(T0,R2),add(vphi(R2,L0,L1,T0,R0,R1));R2=null).
+                     genreg(T0,R2),add(vphi(R2,L0,L1,T0,R0,R1));R2=tn(tv,null)).
   e(E,_) :- writeln(error(compile:e(E))),halt(-1).
 :- end(compile).
 :- begin(emit,[emit/2]).
   t(rl(T,_),T).
   t(rn(T,_),T).
   t(rg(T,_),T).
-  t(null,tv).
   id(rl(_,Id),Id).
   id(rn(_,Id),Id).
   id(rg(_,Id),Id).

@@ -3,14 +3,29 @@ term_expansion(:-begin(M,E),:-true) :- assert(begin(M,E)).
 term_expansion(:-end(M),:-true) :- retract(begin(M,E)),forall(retract(data(P)),M:assert(P)),
                                    forall(member(P1,E),(M:export(M:P1),user:import(M:P1))).
 term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
+:- op(1200,xfx,::=).
+:- op(650,xfx,∈).
+:- begin(syntax,[syntax/2]).
+G∈{G}. G∈(G|_). G∈(_|G1):-G∈G1. G∈G.
+syntax(G,E):-G=..[O|Gs],E=..[O|Es],maplist(syntax,Gs,Es),!.
+syntax(G,E):-(G::=Gs),!,G1∈Gs,syntax(G1,E),!.
+syntax(i,I):-integer(I),!.
+syntax(id,I):- atom(I),!.
+syntax(list(E),Ls) :- maplist(syntax(E),Ls).
+t ::= tv | ti(i) | tp(t).
+e ::= eint(i) | eadd(e,e) | emul(e,e) | eprint(e) | eblock(list(e)) | evar(id,t) | eid(id) | eassign(e,e).
+r ::= rl(t,id) | rn(t,i).
+v ::= vprint(r) | vbin(r,id,r,r) | valloca(r) | vload(r,r) | vstore(r,r).
+vs ::= list(v).
+:- end(syntax).
 :- begin(compile,[compile/2]).
-  resetid     :- retractall(id(_)),assert(id(0)).
-  genid(S,A)  :- retract(id(C)),C1 is C+1,assert(id(C1)),format(atom(A),'~w~w',[S,C]).
+  resetid    :- retractall(id(_)),assert(id(0)).
+  genid(S,A) :- retract(id(C)),C1 is C+1,assert(id(C1)),format(atom(A),'~w~w',[S,C]).
   genreg(T,rl(T,Id)) :- genid('..',Id).
   add(V) :- assert(v(V)).
   arr(eid(Id),rl(tp(T),Id)) :- env(Id,T).
   arr(_,_) :- throw(error).
-  compile(E,Vs) :- resetid,e(E,_),findall(V,retract(v(V)),Vs).
+  compile(E,Vs) :- syntax(e,E),resetid,e(E,_),findall(V,retract(v(V)),Vs).
   e(eint(I),rn(ti(64),I)).
   e(eadd(E1,E2),R3) :- e(E1,R1),e(E2,R2),genreg(ti(64),R3),add(vbin(R3,add,R1,R2)).
   e(emul(E1,E2),R3) :- e(E1,R1),e(E2,R2),genreg(ti(64),R3),add(vbin(R3,mul,R1,R2)).
@@ -40,8 +55,8 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
   entry :-  asm('define i32 @main() {'),
             asm('entry:').
   leave :-  asm('\tret i32 0'),
-            asm('}'),
-            asm('@.str = private constant [5 x i8] c"%ld\\0A\\00"'),
+            asm('}').
+  printl :- asm('@.str = private constant [5 x i8] c"%ld\\0A\\00"'),
             asm('define void @print_l(i64 %a) {'),
             asm('entry:'),
             asm('\t%a_addr = alloca i64'),
@@ -54,7 +69,7 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
             asm('declare i32 @printf(i8*,...)').
   emit(File,Vs) :- setup_call_cleanup(
                     (open(File,write,FP),assert(fp(FP))),
-                    (entry,maplist(out,Vs),leave),
+                    (entry,maplist(out,Vs),leave,printl),
                     (close(FP),retract(fp(_)))).
 :- end(emit).
 :-compile(eblock([
@@ -62,6 +77,7 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
     eassign(eid(c),eadd(eint(10),eint(5))),
     eprint(eid(c))
   ]),Codes),
+  syntax(vs,Codes),
   emit('l05.ll',Codes),!,
   shell('llc l05.ll -o l05.s'),
   shell('gcc -static l05.s -o l05.exe'),
