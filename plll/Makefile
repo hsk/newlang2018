@@ -1,4 +1,9 @@
 tests:
+	swipl c03.pl | diff results/c03.txt -
+	swipl c04.pl | diff results/c04.txt -
+	swipl c06.pl | diff results/c06.txt -
+	swipl c07.pl | diff results/c07.txt -
+	swipl c08.pl | diff results/c08.txt -
 	swipl l03.pl | diff results/l03.txt -
 	swipl l04.pl | diff results/l04.txt -
 	swipl l05.pl | diff results/l05.txt -
@@ -33,6 +38,11 @@ r:
 	swipl l16.pl > results/l16.txt
 	swipl l17.pl > results/l17.txt
 	swipl l18.pl > results/l18.txt
+	swipl c03.pl > results/c03.txt
+	swipl c04.pl > results/c04.txt
+	swipl c06.pl > results/c06.txt
+	swipl c07.pl > results/c07.txt
+	swipl c08.pl > results/c08.txt
 clean:
 	rm -rf *.ll *.exe *.s
 ll:

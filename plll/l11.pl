@@ -21,12 +21,14 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
   v ::= vprint(r) | vbin(r,id,r,r) | valloca(r) | vload(r,r) | vstore(r,r) | vfield(r,r,r,r)
       | vcomment(id).
 :- end(syntax).
-:- begin(compile,[compile/2,str/2]).
-  resetid    :- retractall(id(_)),assert(id(0)).
+:- begin(env,[resetid/0,genid/2,genreg/2,t/2,cut_t/2,env/2,str/2]).
+  t(rl(T,_),T).
+  t(rn(T,_),T).
+  resetid    :- retractall(id(_)),assert(id(0)),dynamic(env/2),dynamic(str/2).
   genid(S,A) :- retract(id(C)),C1 is C+1,assert(id(C1)),format(atom(A),'~w~w',[S,C]).
   genreg(T,rl(T,Id)) :- genid('..',Id).
-  add_env(Id,T) :- assert(env(Id,T)),add_str(T,Id,false).
-  add_env(Id,T,D) :- assert(env(Id,T)),add_str(T,Id,D).
+  add(Id,T) :- assert(env(Id,T)),add_str(T,Id,false).
+  add(Id,T,D) :- assert(env(Id,T)),add_str(T,Id,D).
   cut_t(tp(T),tp(T2)) :- cut_t(T,T2).
   cut_t(tname(T),T3) :- env(T,T2),cut_t(T2,T3).
   cut_t(T,T).
@@ -34,17 +36,19 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
                          forall(member(_:T1,Ls),add_str(T1,Id,false)).
   add_str(tarr(T,_),Id,D) :- add_str(T,Id,D).
   add_str(_,_,_).
+:- end(env).
+:- begin(compile,[compile/2]).
   add(V) :- assert(v(V)).
   cut(T,T2) :- cut_t(T,T1),cut1(T1,T2).
   cut1(tp(tarr(T,_)),tp(T)).
   cut1(tp(T),T).
   arr(eid(Id),rl(tp(T),Id)) :- !,env(Id,T).
   arr(earray(Id,E),R4) :- !,e(E,R1),R2=rn(ti(64),0),arr(Id,R3),
-                          emit:t(R3,T3),cut_t(T3,T2),cut(T3,T4),genreg(T4,R4),
+                          t(R3,T3),cut_t(T3,T2),cut(T3,T4),genreg(T4,R4),
                           (T2=tp(tp(_)) -> genreg(T4,R5),add(vload(R5,R3)),add(vbin(R4,add,R5,R1))
                           ; add(vfield(R4,R3,R2,R1))).
   arr(eptr(Id),R1) :- arr(earray(Id,eint(ti(64),0)),R1).
-  arr(efield(Id,Idx),R4) :- arr(Id,R3),emit:t(R3,tp(T)),cut_t(T,T1),T1=tstr(M),member(Idx:T2,M),
+  arr(efield(Id,Idx),R4) :- arr(Id,R3),t(R3,tp(T)),cut_t(T,T1),T1=tstr(M),member(Idx:T2,M),
                             index(T,Idx,N),R1=rn(ti(32),N),R2=rn(ti(64),0),genreg(tp(T2),R4),
                             add(vfield(R4,R3,R2,R1)).
   arr(E,_) :- findall(env(Id,T),env(Id,T),Vs),throw(error:arr(E);Vs).
@@ -52,30 +56,27 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
   index1(tstr(Ls),Id,N) :- !,nth0(N,Ls,Id:_).
   index1(_,_,_) :- throw(error).
   e(eint(T,I),rn(T,I)).
-  e(eadd(E1,E2),R3) :- e(E1,R1),e(E2,R2),emit:t(R1,T1),genreg(T1,R3),add(vbin(R3,add,R1,R2)).
-  e(emul(E1,E2),R3) :- e(E1,R1),e(E2,R2),emit:t(R1,T1),genreg(T1,R3),add(vbin(R3,mul,R1,R2)).
+  e(eadd(E1,E2),R3) :- e(E1,R1),e(E2,R2),t(R1,T1),genreg(T1,R3),add(vbin(R3,add,R1,R2)).
+  e(emul(E1,E2),R3) :- e(E1,R1),e(E2,R2),t(R1,T1),genreg(T1,R3),add(vbin(R3,mul,R1,R2)).
   e(eblock(Es),R) :- foldl([E,R,R1]>>e(E,R1),Es,rn(tv,void),R).
   e(eprint(E1),rn(tv,void)) :- e(E1,R1),add(vprint(R1)).
-  e(evar(Id,T),R1) :- R1=rl(T,Id),add(valloca(R1)),add_env(Id,T).
-  e(eassign(eid(S),etyp(T)),rn(tv,void)) :- !,add_env(S,T,true).
+  e(evar(Id,T),R1) :- R1=rl(T,Id),add(valloca(R1)),env:add(Id,T).
+  e(eassign(eid(S),etyp(T)),rn(tv,void)) :- !,env:add(S,T,true).
   e(eassign(E1,E2),R1) :- e(E2,R1),arr(E1,R2),add(vstore(R1,R2)).
   e(E,R2) :- (E=eid(_);E=earray(_,_);E=efield(_,_);E=eptr(_)),!,
-             arr(E,R1),emit:t(R1,T1),cut(T1,T2),genreg(T2,R2),add(vload(R2,R1)).
+             arr(E,R1),t(R1,T1),cut(T1,T2),genreg(T2,R2),add(vload(R2,R1)).
   e(eref(E),R1) :- arr(E,R1).
   e(E,_) :- writeln(error(compile:e(E))),halt(-1).
-  compile(E,Vs) :- syntax(e,E),resetid,dynamic(str/2),dynamic(env/2),
-                   e(E,_),findall(V,retract(v(V)),Vs).
+  compile(E,Vs) :- syntax(e,E),resetid,e(E,_),findall(V,retract(v(V)),Vs).
 :- end(compile).
 :- begin(emit,[emit/2]).
-  t(rl(T,_),T).
-  t(rn(T,_),T).
-  pt(R,X) :- t(R,T),!,compile:cut_t(T,T1),pt1(T1,X).
-  pt(T,X) :- compile:cut_t(T,T1),pt1(T1,X).
+  pt(R,X) :- t(R,T),!,cut_t(T,T1),pt1(T1,X).
+  pt(T,X) :- cut_t(T,T1),pt1(T1,X).
   pt1(ti(I),X) :- format(atom(X),'i~w',[I]).
   pt1(tv,void).
   pt1(tp(T),X) :- pt(T,X1),format(atom(X),'~w*',[X1]).
   pt1(tarr(T,Size),X) :- pt(T,X1),format(atom(X),'[~w x ~w]',[Size,X1]).
-  pt1(tstr(Ls),X) :- compile:str(tstr(Ls),R),p(R,X).
+  pt1(tstr(Ls),X) :- str(tstr(Ls),R),p(R,X).
   pt1(tname(N),X) :- format(atom(X),'%~w',[N]).
   p(A,A) :- atom(A),!.
   p(rl(_,Id),X) :- format(atom(X),'%~w',[Id]).
@@ -100,15 +101,12 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
   printl :- asm('@.str = private constant [5 x i8] c"%ld\\0A\\00"'),
             asm('define void @print_l(i64 %a) {'),
             asm('entry:'),
-            asm('\t%a_addr = alloca i64'),
-            asm('\tstore i64 %a,i64* %a_addr'),
-            asm('\t%0 = load i64,i64* %a_addr'),
-            asm('\t%1 = call i32 (i8*,...) @printf(i8* ~w,i64 %0)',
+            asm('\t%0 = call i32 (i8*,...) @printf(i8* ~w,i64 %a)',
                 [p('getelementptr inbounds ([5 x i8],[5 x i8]* @.str,i32 0,i32 0)')]),
             asm('\tret void'),
             asm('}'),
             asm('declare i32 @printf(i8*,...)').
-  strs :- forall(compile:str(tstr(Ls),R),(
+  strs :- forall(str(tstr(Ls),R),(
             maplist([_:T,A]>>pt(T,A),Ls,As),atomic_list_concat(As,',',A),
             asm('~w = type { ~w }',[p(R),p(A)])
           )).

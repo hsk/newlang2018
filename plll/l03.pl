@@ -17,10 +17,12 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
   r ::= rl(id) | rn(i).
   v ::= vprint(r) | vbin(r,id,r,r).
 :- end(syntax).
-:- begin(compile,[compile/2]).
+:- begin(env,[resetid/0,genid/2,genreg/1]).
   resetid    :- retractall(id(_)),assert(id(0)).
   genid(S,A) :- retract(id(C)),C1 is C+1,assert(id(C1)),format(atom(A),'~w~w',[S,C]).
   genreg(rl(Id)) :- genid('..',Id).
+:- end(env).
+:- begin(compile,[compile/2]).
   add(V) :- assert(v(V)).
   e(eint(I),rn(I)).
   e(eadd(E1,E2),R) :- e(E1,R1),e(E2,R2),genreg(R),add(vbin(R,add,R1,R2)).
@@ -44,10 +46,7 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
   printl :- asm('@.str = private constant [5 x i8] c"%ld\\0A\\00"'),
             asm('define void @print_l(i64 %a) {'),
             asm('entry:'),
-            asm('\t%a_addr = alloca i64'),
-            asm('\tstore i64 %a,i64* %a_addr'),
-            asm('\t%0 = load i64,i64* %a_addr'),
-            asm('\t%1 = call i32 (i8*,...) @printf(i8* ~w,i64 %0)',
+            asm('\t%0 = call i32 (i8*,...) @printf(i8* ~w,i64 %a)',
                 [p('getelementptr inbounds ([5 x i8],[5 x i8]* @.str,i32 0,i32 0)')]),
             asm('\tret void'),
             asm('}'),

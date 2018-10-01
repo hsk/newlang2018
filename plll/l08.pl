@@ -19,18 +19,22 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
   r ::= rl(t,id) | rn(t,i).
   v ::= vprint(r) | vbin(r,id,r,r) | valloca(r) | vload(r,r) | vstore(r,r) | vfield(r,r,r,r).
 :- end(syntax).
-:- begin(compile,[compile/2,str/2]).
-  resetid    :- retractall(id(_)),assert(id(0)).
+:- begin(env,[resetid/0,genid/2,genreg/2,t/2,env/2,str/2]).
+  t(rl(T,_),T).
+  t(rn(T,_),T).
+  resetid    :- retractall(id(_)),assert(id(0)),dynamic(env/2),dynamic(str/2).
   genid(S,A) :- retract(id(C)),C1 is C+1,assert(id(C1)),format(atom(A),'~w~w',[S,C]).
   genreg(T,rl(T,Id)) :- genid('..',Id).
-  add_env(Id,T) :- assert(env(Id,T)), add_str(T).
+  add(Id,T) :- assert(env(Id,T)), add_str(T).
   add_str(T) :- T\=tstr(_); str(T,_); genreg(T,R),assert(str(T,R)).
+:- end(env).
+:- begin(compile,[compile/2]).
   add(V) :- assert(v(V)).
   cut(tp(tarr(T,_)),tp(T)).
   cut(tp(T),T).
-  arr(eid(Id),rl(tp(T),Id)) :- !,env(Id,T).
-  arr(earray(Id,E),R4) :- !,e(E,R1),R2=rn(ti(64),0),arr(Id,R3),
-                          emit:t(R3,T),cut(T,T4),genreg(T4,R4),add(vfield(R4,R3,R2,R1)).
+  arr(eid(Id),rl(tp(T),Id)) :- env(Id,T).
+  arr(earray(Id,E),R4) :- e(E,R1),R2=rn(ti(64),0),arr(Id,R3),
+                          t(R3,T),cut(T,T4),genreg(T4,R4),add(vfield(R4,R3,R2,R1)).
   arr(efield(Id,Idx),R4) :- env(Id,T),index(T,Idx,N),R1=rn(ti(32),N),R2=rn(ti(64),0),
                             arr(eid(Id),R3),genreg(tp(ti(64)),R4),
                             add(vfield(R4,R3,R2,R1)).
@@ -38,26 +42,23 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
   index(tstr(Ls),Id,N) :- nth0(N,Ls,Id:_).
   index(_,_) :- throw(error).
   e(eint(T,I),rn(T,I)).
-  e(eadd(E1,E2),R3) :- e(E1,R1),e(E2,R2),emit:t(R1,T1),genreg(T1,R3),add(vbin(R3,add,R1,R2)).
-  e(emul(E1,E2),R3) :- e(E1,R1),e(E2,R2),emit:t(R1,T1),genreg(T1,R3),add(vbin(R3,mul,R1,R2)).
+  e(eadd(E1,E2),R3) :- e(E1,R1),e(E2,R2),t(R1,T1),genreg(T1,R3),add(vbin(R3,add,R1,R2)).
+  e(emul(E1,E2),R3) :- e(E1,R1),e(E2,R2),t(R1,T1),genreg(T1,R3),add(vbin(R3,mul,R1,R2)).
   e(eblock(Es),R) :- foldl([E,R,R1]>>e(E,R1),Es,rn(tv,void),R).
   e(eprint(E1),rn(tv,void)) :- e(E1,R1),add(vprint(R1)).
-  e(evar(Id,T),R1) :- R1=rl(T,Id),add(valloca(R1)),add_env(Id,T).
+  e(evar(Id,T),R1) :- R1=rl(T,Id),add(valloca(R1)),env:add(Id,T).
   e(eassign(E1,E2),R1) :- e(E2,R1),arr(E1,R2),add(vstore(R1,R2)).
   e(E,R2) :- (E=eid(_);E=earray(_,_);E=efield(_,_)),!,
-             arr(E,R1),emit:t(R1,T1),cut(T1,T2),genreg(T2,R2),add(vload(R2,R1)).
-  compile(E,Vs) :- syntax(e,E),resetid,dynamic(str/2),dynamic(env/2),
-                   e(E,_),findall(V,retract(v(V)),Vs).
+             arr(E,R1),t(R1,T1),cut(T1,T2),genreg(T2,R2),add(vload(R2,R1)).
+  compile(E,Vs) :- syntax(e,E),resetid,e(E,_),findall(V,retract(v(V)),Vs).
 :- end(compile).
 :- begin(emit,[emit/2]).
-  t(rl(T,_),T).
-  t(rn(T,_),T).
   pt(R,X) :- t(R,T),!,pt(T,X).
   pt(ti(I),X) :- format(atom(X),'i~w',[I]).
   pt(tv,void).
   pt(tp(T),X) :- pt(T,X1),format(atom(X),'~w*',[X1]).
   pt(tarr(T,Size),X) :- pt(T,X1),format(atom(X),'[~w x ~w]',[Size,X1]).
-  pt(tstr(Ls),X) :- compile:str(tstr(Ls),R),p(R,X).
+  pt(tstr(Ls),X) :- str(tstr(Ls),R),p(R,X).
   p(A,A) :- atom(A),!.
   p(rl(_,Id),X) :- format(atom(X),'%~w',[Id]).
   p(rn(_,Id),Id).
@@ -70,7 +71,7 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
   out(vstore(R1,R2)) :- asm('\tstore ~w ~w,~w ~w',[pt(R1),p(R1),pt(R2),p(R2)]).
   out(vfield(R1,Addr,Zero,A)) :- t(Addr,tp(T)),asm('\t~w = getelementptr inbounds ~w,~w ~w,~w ~w,~w ~w',
                                   [p(R1),pt(T),pt(Addr),p(Addr),pt(Zero),p(Zero),pt(A),p(A)]).
-  out(V) :- writeln(error:out(V)),halt.
+  out(V) :- writeln(error:out(V)),halt(-1).
   entry :-  asm('define i32 @main() {'),
             asm('entry:').
   leave :-  asm('\tret i32 0'),
@@ -78,15 +79,12 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
   printl :- asm('@.str = private constant [5 x i8] c"%ld\\0A\\00"'),
             asm('define void @print_l(i64 %a) {'),
             asm('entry:'),
-            asm('\t%a_addr = alloca i64'),
-            asm('\tstore i64 %a,i64* %a_addr'),
-            asm('\t%0 = load i64,i64* %a_addr'),
-            asm('\t%1 = call i32 (i8*,...) @printf(i8* ~w,i64 %0)',
+            asm('\t%0 = call i32 (i8*,...) @printf(i8* ~w,i64 %a)',
                 [p('getelementptr inbounds ([5 x i8],[5 x i8]* @.str,i32 0,i32 0)')]),
             asm('\tret void'),
             asm('}'),
             asm('declare i32 @printf(i8*,...)').
-  strs :- forall(compile:str(tstr(Ls),R),(
+  strs :- forall(str(tstr(Ls),R),(
             maplist([_:T,A]>>pt(T,A),Ls,As),atomic_list_concat(As,',',A),
             asm('~w = type { ~w }',[p(R),p(A)])
           )).
