@@ -14,29 +14,31 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
   syntax(id,I):- atom(I),!.
   syntax(E*,Ls) :- maplist(syntax(E),Ls).
   t ::= tv | ti(i) | tp(t) | tarr(t,i).
-  e ::= eint(i) | eadd(e,e) | emul(e,e) | eprint(e) | eblock(e*)
+  e ::= eint(ti(i),i) | eadd(e,e) | emul(e,e) | eprint(e) | eblock(e*)
       | evar(id,t) | eid(id) | eassign(e,e) | earray(id,e).
   r ::= rl(t,id) | rn(t,i).
   v ::= vprint(r) | vbin(r,id,r,r) | valloca(r) | vload(r,r) | vstore(r,r) | vfield(r,r,r,r).
 :- end(syntax).
 :- begin(compile,[compile/2]).
-  resetid     :- retractall(id(_)),assert(id(0)).
-  genid(S,A)  :- retract(id(C)),C1 is C+1,assert(id(C1)),format(atom(A),'~w~w',[S,C]).
+  resetid    :- retractall(id(_)),assert(id(0)).
+  genid(S,A) :- retract(id(C)),C1 is C+1,assert(id(C1)),format(atom(A),'~w~w',[S,C]).
   genreg(T,rl(T,Id)) :- genid('..',Id).
+  add_env(Id,T) :- assert(env(Id,T)).
   add(V) :- assert(v(V)).
+  cut(tp(T),T).
   arr(eid(Id),rl(tp(T),Id)) :- env(Id,T).
   arr(earray(Id,E),R4) :- e(E,R1),R2=rn(ti(64),0),env(Id,T),R3=rl(tp(T),Id),
                           genreg(tp(ti(64)),R4),add(vfield(R4,R3,R2,R1)).
   arr(_,_) :- throw(error).
-  compile(E,Vs) :- syntax(e,E),resetid,e(E,_),findall(V,retract(v(V)),Vs).
-  e(eint(I),rn(ti(64),I)).
-  e(eadd(E1,E2),R3) :- e(E1,R1),e(E2,R2),genreg(ti(64),R3),add(vbin(R3,add,R1,R2)).
-  e(emul(E1,E2),R3) :- e(E1,R1),e(E2,R2),genreg(ti(64),R3),add(vbin(R3,mul,R1,R2)).
+  e(eint(T,I),rn(T,I)).
+  e(eadd(E1,E2),R3) :- e(E1,R1),e(E2,R2),emit:t(R1,T1),genreg(T1,R3),add(vbin(R3,add,R1,R2)).
+  e(emul(E1,E2),R3) :- e(E1,R1),e(E2,R2),emit:t(R1,T1),genreg(T1,R3),add(vbin(R3,mul,R1,R2)).
   e(eblock(Es),R) :- foldl([E,R,R1]>>e(E,R1),Es,rn(tv,void),R).
   e(eprint(E1),rn(tv,void)) :- e(E1,R1),add(vprint(R1)).
-  e(evar(Id,T),R1) :- R1=rl(T,Id),add(valloca(R1)),assert(env(Id,T)).
+  e(evar(Id,T),R1) :- R1=rl(T,Id),add(valloca(R1)),add_env(Id,T).
   e(eassign(E1,E2),R1) :- e(E2,R1),arr(E1,R2),add(vstore(R1,R2)).
-  e(E,R2) :- (E=eid(_);E=earray(_,_)),!,arr(E,R1),genreg(ti(64),R2),add(vload(R2,R1)).
+  e(E,R2) :- (E=eid(_);E=earray(_,_)),!,arr(E,R1),emit:t(R1,T1),cut(T1,T2),genreg(T2,R2),add(vload(R2,R1)).
+  compile(E,Vs) :- syntax(e,E),resetid,dynamic(env/2),e(E,_),findall(V,retract(v(V)),Vs).
 :- end(compile).
 :- begin(emit,[emit/2]).
   t(rl(T,_),T).
@@ -80,8 +82,8 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
 :- end(emit).
 :-compile(eblock([
     evar(a,tarr(ti(64),10)),
-    eassign(earray(a,eint(1)),eint(3)),
-    eprint(earray(a,eint(1)))
+    eassign(earray(a,eint(ti(64),1)),eint(ti(64),3)),
+    eprint(earray(a,eint(ti(64),1)))
   ]),Codes),
   syntax(v*,Codes),
   emit('l06.ll',Codes),!,

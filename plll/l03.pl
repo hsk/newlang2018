@@ -18,16 +18,16 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
   v ::= vprint(r) | vbin(r,id,r,r).
 :- end(syntax).
 :- begin(compile,[compile/2]).
-  resetid     :- retractall(id(_)),assert(id(0)).
-  genid(S,A)  :- retract(id(C)),C1 is C+1,assert(id(C1)),format(atom(A),'~w~w',[S,C]).
+  resetid    :- retractall(id(_)),assert(id(0)).
+  genid(S,A) :- retract(id(C)),C1 is C+1,assert(id(C1)),format(atom(A),'~w~w',[S,C]).
   genreg(rl(Id)) :- genid('..',Id).
   add(V) :- assert(v(V)).
-  compile(E,Vs) :- syntax(e,E),resetid,e(E,_),findall(V,retract(v(V)),Vs).
   e(eint(I),rn(I)).
   e(eadd(E1,E2),R) :- e(E1,R1),e(E2,R2),genreg(R),add(vbin(R,add,R1,R2)).
   e(emul(E1,E2),R) :- e(E1,R1),e(E2,R2),genreg(R),add(vbin(R,mul,R1,R2)).
   e(eblock(Es),R) :- foldl([E,R,R1]>>e(E,R1),Es,rn(void),R).
-  e(eprint(E1),R2) :- e(E1,R1),R2 = rn(void),add(vprint(R1)).
+  e(eprint(E1),rn(void)) :- e(E1,R1),add(vprint(R1)).
+  compile(E,Vs) :- syntax(e,E),resetid,e(E,_),findall(V,retract(v(V)),Vs).
 :- end(compile).
 :- begin(emit,[emit/2]).
   p(rl(Id),X) :- format(atom(X),'%~w',[Id]).

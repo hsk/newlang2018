@@ -14,7 +14,7 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
   syntax(id,I):- atom(I),!.
   syntax(E*,Ls) :- maplist(syntax(E),Ls).
   t ::= tv | ti(i) | tp(t) | tarr(t,i) | tstr((id:t)*).
-  e ::= eint(i) | eadd(e,e) | emul(e,e) | eprint(e) | eblock(e*)
+  e ::= eint(ti(i),i) | eadd(e,e) | emul(e,e) | eprint(e) | eblock(e*)
       | evar(id,t) | eid(id) | eassign(e,e) | earray(e,e) | efield(e,id)
       | eref(e) | eptr(e).
   r ::= rl(t,id) | rn(t,i).
@@ -22,8 +22,8 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
       | vcomment(id).
 :- end(syntax).
 :- begin(compile,[compile/2,str/2]).
-  resetid     :- retractall(id(_)),assert(id(0)).
-  genid(S,A)  :- retract(id(C)),C1 is C+1,assert(id(C1)),format(atom(A),'~w~w',[S,C]).
+  resetid    :- retractall(id(_)),assert(id(0)).
+  genid(S,A) :- retract(id(C)),C1 is C+1,assert(id(C1)),format(atom(A),'~w~w',[S,C]).
   genreg(T,rl(T,Id)) :- genid('..',Id).
   add_env(Id,T) :- assert(env(Id,T)), add_str(T).
   add_str(tarr(T,_)) :- add_str(T).
@@ -38,25 +38,26 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
                           emit:t(R3,T3),cut(T3,T4),genreg(T4,R4),
                           (T3=tp(tp(_)) -> genreg(T4,R5),add(vload(R5,R3)),add(vbin(R4,add,R5,R1))
                           ; add(vfield(R4,R3,R2,R1))).
+  arr(eptr(Id),R1) :- arr(earray(Id,eint(ti(64),0)),R1).
   arr(efield(Id,Idx),R4) :- arr(Id,R3),emit:t(R3,tp(tstr(M))),T=tstr(M),member(Idx:T2,M),
                             index(T,Idx,N),R1=rn(ti(32),N),R2=rn(ti(64),0),genreg(tp(T2),R4),
                             add(vfield(R4,R3,R2,R1)).
-  arr(eptr(Id),R1) :- arr(earray(Id,eint(0)),R1).
   arr(E,_) :- findall(env(Id,T),env(Id,T),Vs),throw(error:arr(E);Vs).
   index(tstr(Ls),Id,N) :- nth0(N,Ls,Id:_).
   index(_,_) :- throw(error).
-  compile(E,Vs) :- syntax(e,E),resetid,dynamic(str/2),e(E,_),findall(V,retract(v(V)),Vs).
-  e(eint(I),rn(ti(64),I)) :- !.
+  e(eint(T,I),rn(T,I)).
   e(eadd(E1,E2),R3) :- e(E1,R1),e(E2,R2),emit:t(R1,T1),genreg(T1,R3),add(vbin(R3,add,R1,R2)).
   e(emul(E1,E2),R3) :- e(E1,R1),e(E2,R2),emit:t(R1,T1),genreg(T1,R3),add(vbin(R3,mul,R1,R2)).
   e(eblock(Es),R) :- foldl([E,R,R1]>>e(E,R1),Es,rn(tv,void),R).
-  e(eprint(E1),rn(tv,void)) :- !,e(E1,R1),add(vprint(R1)).
+  e(eprint(E1),rn(tv,void)) :- e(E1,R1),add(vprint(R1)).
   e(evar(Id,T),R1) :- R1=rl(T,Id),add(valloca(R1)),add_env(Id,T).
-  e(eassign(E1,E2),R1) :- !,e(E2,R1),arr(E1,R2),add(vstore(R1,R2)).
+  e(eassign(E1,E2),R1) :- e(E2,R1),arr(E1,R2),add(vstore(R1,R2)).
   e(E,R2) :- (E=eid(_);E=earray(_,_);E=efield(_,_);E=eptr(_)),!,
              arr(E,R1),emit:t(R1,T1),cut(T1,T2),genreg(T2,R2),add(vload(R2,R1)).
   e(eref(E),R1) :- arr(E,R1).
   e(E,_) :- writeln(error(compile:e(E))),halt(-1).
+  compile(E,Vs) :- syntax(e,E),resetid,dynamic(str/2),dynamic(env/2),
+                   e(E,_),findall(V,retract(v(V)),Vs).
 :- end(compile).
 :- begin(emit,[emit/2]).
   t(rl(T,_),T).
@@ -73,7 +74,7 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
   asm(S)              :- fp(FP),writeln(FP,S).
   asm(S,F)            :- fp(FP),maplist(call,F,F_),format(FP,S,F_),nl(FP).
   out(vbin(Id,add,A,B)) :- t(A,tp(T)),asm('\t~w = getelementptr inbounds ~w,~w ~w,~w ~w',[p(Id),pt(T),pt(A),p(A),pt(B),p(B)]),!.
-  out(vbin(Id,Op,A,B)) :- asm('\t~w = ~w ~w ~w,~w',[p(Id),p(Op),pt(A),p(A),p(B)]),!.
+  out(vbin(Id,Op,A,B)) :- asm('\t~w = ~w ~w ~w,~w',[p(Id),p(Op),pt(A),p(A),p(B)]).
   out(vprint(A)) :- asm('\tcall void @print_l(~w ~w)',[pt(A),p(A)]).
   out(valloca(R)) :- asm('\t~w = alloca ~w',[p(R),pt(R)]).
   out(vload(R1,R2)) :- t(R2,tp(tarr(T,N))),asm('\t~w = getelementptr inbounds ~w,~w ~w,i32 0,i32 0',[p(R1),pt(tarr(T,N)),pt(R2),p(R2)]).
@@ -109,25 +110,25 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
 :- end(emit).
 :-compile(eblock([
     evar(ar,tarr(ti(64),10)),
-    eassign(earray(eid(ar),eint(0)),eint(100)),
-    eassign(earray(eid(ar),eint(1)),eint(200)),
-    eprint(earray(eid(ar),eint(0))),
+    eassign(earray(eid(ar),eint(ti(64),0)),eint(ti(64),100)),
+    eassign(earray(eid(ar),eint(ti(64),1)),eint(ti(64),200)),
+    eprint(earray(eid(ar),eint(ti(64),0))),
     evar(a,ti(64)),
     evar(b,ti(64)),
     evar(c,ti(64)),
     evar(p,tp(ti(64))),
     eassign(eid(p),eref(eid(c))),
-    eassign(eid(a),eint(200)),
-    eassign(eid(p),eadd(eid(p),eint(2))),
-    eprint(earray(eid(p),eint(0))),
-    eassign(earray(eid(p),eint(0)),eint(300)),
+    eassign(eid(a),eint(ti(64),200)),
+    eassign(eid(p),eadd(eid(p),eint(ti(64),2))),
+    eprint(earray(eid(p),eint(ti(64),0))),
+    eassign(earray(eid(p),eint(ti(64),0)),eint(ti(64),300)),
     eprint(eid(a)),
     eprint(eptr(eid(p))),
-    eassign(earray(eid(p),eint(0)),eint(400)),
+    eassign(earray(eid(p),eint(ti(64),0)),eint(ti(64),400)),
     eprint(eid(a)),
     eassign(eid(p),eid(ar)),
     eprint(eptr(eid(p))),
-    eassign(eid(p),eref(earray(eid(ar),eint(1)))),
+    eassign(eid(p),eref(earray(eid(ar),eint(ti(64),1)))),
     eprint(eptr(eid(p)))
   ]),Codes),!,
   syntax(v*,Codes),

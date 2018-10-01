@@ -27,8 +27,8 @@ cc ::= bin(o,cr,cr,cr) | mov(cr,cr) | call(cr,cr*,cr) | bne(cr,l,l) | br(l) | re
 cf ::= x:x* = (l:cc*)* .
 c  ::= cf* .
 
-ri ::= i | - ri.
+ri ::= i | -ri.
 rr ::= \x | $i | ptr(\x,ri) | null.
-rc ::= enter(ri,\x*)|bin(o,rr,rr,rr) | mov(rr,rr) | call(x,rr*,rr,\x*) | bne(rr,l,l) | br(l) | ret(rr).
+rc ::= enter(ri,\x*) | bin(o,rr,rr,rr) | mov(rr,rr) | call(x,rr*,rr,\x*) | bne(rr,l,l) | br(l) | ret(rr).
 rf ::= x:mov(rr,rr)* = (l:rc*)* .
 r  ::= rf* .

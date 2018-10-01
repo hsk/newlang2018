@@ -1,0 +1,4 @@
+# l=[vprint(rn(1)),vbin(rl(..0),add,rn(2),rn(3)),vprint(rl(..0)),vbin(rl(..1),add,rn(2),rn(3)),vbin(rl(..2),mul,rl(..1),rn(2)),vprint(rl(..2))]
+1
+5
+10

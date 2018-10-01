@@ -26,8 +26,8 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
       | vjne(r,id,id) | vgoto(id) | vlabel(id) | vphi(r,id,id,t,r,r) | vbitcast(r,r).
 :- end(syntax).
 :- begin(compile,[compile/2,str/2]).
-  resetid     :- retractall(id(_)),assert(id(0)).
-  genid(S,A)  :- retract(id(C)),C1 is C+1,assert(id(C1)),format(atom(A),'~w~w',[S,C]).
+  resetid    :- retractall(id(_)),assert(id(0)).
+  genid(S,A) :- retract(id(C)),C1 is C+1,assert(id(C1)),format(atom(A),'~w~w',[S,C]).
   genreg(T,rl(T,Id)) :- genid('..',Id).
   push :- findall(env(Id,T),env(Id,T),Envs),asserta(stack(Envs)).
   pop :- retract(stack(Envs)),retractall(env(_,_)),forall(member(Env,Envs),assert(Env)).
@@ -88,20 +88,12 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
     add_env(StRId, StT),StT=tstr(M),
     maplist([E,Id:_]>>e(eassign(efield(eid(StRId), Id), E),_),[eint(ti(32),TagIdx)|Ls],M).
   setAssign1(_,T,E) :- throw(error:setAssign(T,E)).
-  compile(Es,Fs) :- syntax(g*,Es),resetid,dynamic(str/2),dynamic(env/2),
-                    forall(member(E,Es),g(E)),findall(F,func(F),Fs).
-  g(eassign(eid(A),efun(Prms,T,Body))) :-
-    push,findall(T,(member(S:T,Prms),add_env(S,T)),Ts),e(Body,R),cut_t(T,T1),
-    (T1=tv -> add(vret(rn(ti(32),0))),T2=ti(32) ; add(vret(R)),T2=T1),
-    pop,add_env(A,tfun(Ts,T),true),findall(V,retract(v(V)),Vs),
-    assert(func(vfun(A,Prms,T2,Vs))).
-  g(eassign(eid(S),etyp(T))) :- add_env(S,T,true).
-  e(eint(T,I),rn(T,I)) :- !.
+  e(eint(T,I),rn(T,I)).
   e(eadd(E1,E2),R3) :- e(E1,R1),e(E2,R2),emit:t(R1,T1),genreg(T1,R3),add(vbin(R3,add,R1,R2)).
   e(emul(E1,E2),R3) :- e(E1,R1),e(E2,R2),emit:t(R1,T1),genreg(T1,R3),add(vbin(R3,mul,R1,R2)).
   e(ebin(E1,Op,E2),R3) :- e(E1,R1),e(E2,R2),emit:t(R1,T1),genreg(T1,R3),add(vbin(R3,Op,R1,R2)).
   e(eswitch(E1,Ps),R) :- pattern(eswitch(E1,Ps),R).
-  e(eunit,tn(tv,null)) :- !.
+  e(eunit,tn(tv,null)).
   e(eblock(Es),R) :- foldl([E,R,R1]>>e(E,R1),Es,rn(tv,void),R).
   e(eprint(E1),rn(tv,void)) :- !,e(E1,R1),add(vprint(R1)).
   e(evar(Id,T,E),R1) :- R1=rl(T,Id),add(valloca(R1)),add_env(Id,T),
@@ -132,6 +124,14 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
       maplist([eid(A),N:T,evar(A,T,efield(ecast(tp(PtnStTIdx),eref(E1)),N))]>>!,Ptns1,M,BindEs),
       append(BindEs,[BodyE],B),!
     ),RPtns,eunit,IfE),!,e(IfE,R).
+  g(eassign(eid(A),efun(Prms,T,Body))) :-
+    push,findall(T,(member(S:T,Prms),add_env(S,T)),Ts),e(Body,R),cut_t(T,T1),
+    (T1=tv -> add(vret(rn(ti(32),0))),T2=ti(32) ; add(vret(R)),T2=T1),
+    pop,add_env(A,tfun(Ts,T),true),findall(V,retract(v(V)),Vs),
+    assert(func(vfun(A,Prms,T2,Vs))).
+  g(eassign(eid(S),etyp(T))) :- add_env(S,T,true).
+  compile(Es,Fs) :- syntax(g*,Es),resetid,dynamic(str/2),dynamic(env/2),
+                    forall(member(E,Es),g(E)),findall(F,func(F),Fs).
 :- end(compile).
 :- begin(emit,[emit/2]).
   t(rl(T,_),T).
@@ -165,7 +165,7 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
   out(vbin(Id,Op,A,B)) :- asm('\t~w = ~w ~w ~w,~w',[p(Id),p(Op),pt(A),p(A),p(B)]),!.
   out(vprint(A)) :- asm('\tcall void @print_l(~w ~w)',[pt(A),p(A)]).
   out(valloca(R)) :- asm('\t~w = alloca ~w',[p(R),pt(R)]).
-  out(vload(R1,R2)) :- t(R2,tp(tarr(T,N))),asm('\t~w = getelementptr inbounds ~w,~w ~w,i32 0,i32 0',[p(R1),p(tarr(T,N)),pt(R2),p(R2)]).
+  out(vload(R1,R2)) :- t(R2,tp(tarr(T,N))),asm('\t~w = getelementptr inbounds ~w,~w ~w,i32 0,i32 0',[p(R1),pt(tarr(T,N)),pt(R2),p(R2)]).
   out(vload(R1,R2)) :- asm('\t~w = load ~w,~w ~w',[p(R1),pt(R1),pt(R2),p(R2)]).
   out(vstore(R1,R2)) :- asm('\tstore ~w ~w,~w ~w',[pt(R1),p(R1),pt(R2),p(R2)]).
   out(vfield(R1,Addr,Zero,A)) :- t(Addr,tp(T)),asm('\t~w = getelementptr inbounds ~w,~w ~w,~w ~w,~w ~w',

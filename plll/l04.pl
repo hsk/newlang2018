@@ -14,21 +14,21 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
   syntax(id,I):- atom(I),!.
   syntax(E*,Ls) :- maplist(syntax(E),Ls).
   t ::= tv | ti(i).
-  e ::= eint(i) | eadd(e,e) | emul(e,e) | eprint(e) | eblock(e*).
+  e ::= eint(ti(i),i) | eadd(e,e) | emul(e,e) | eprint(e) | eblock(e*).
   r ::= rl(t,id) | rn(t,i).
   v ::= vprint(r) | vbin(r,id,r,r).
 :- end(syntax).
 :- begin(compile,[compile/2]).
-  resetid     :- retractall(id(_)),assert(id(0)).
-  genid(S,A)  :- retract(id(C)),C1 is C+1,assert(id(C1)),format(atom(A),'~w~w',[S,C]).
+  resetid    :- retractall(id(_)),assert(id(0)).
+  genid(S,A) :- retract(id(C)),C1 is C+1,assert(id(C1)),format(atom(A),'~w~w',[S,C]).
   genreg(T,rl(T,Id)) :- genid('..',Id).
   add(V) :- assert(v(V)).
-  compile(E,Vs) :- syntax(e,E),resetid,e(E,_),findall(V,retract(v(V)),Vs).
-  e(eint(I),rn(ti(64),I)).
-  e(eadd(E1,E2),R3) :- e(E1,R1),e(E2,R2),genreg(ti(64),R3),add(vbin(R3,add,R1,R2)).
-  e(emul(E1,E2),R3) :- e(E1,R1),e(E2,R2),genreg(ti(64),R3),add(vbin(R3,mul,R1,R2)).
+  e(eint(T,I),rn(T,I)).
+  e(eadd(E1,E2),R3) :- e(E1,R1),e(E2,R2),emit:t(R1,T1),genreg(T1,R3),add(vbin(R3,add,R1,R2)).
+  e(emul(E1,E2),R3) :- e(E1,R1),e(E2,R2),emit:t(R1,T1),genreg(T1,R3),add(vbin(R3,mul,R1,R2)).
   e(eblock(Es),R) :- foldl([E,R,R1]>>e(E,R1),Es,rn(tv,void),R).
   e(eprint(E1),rn(tv,void)) :- e(E1,R1),add(vprint(R1)).
+  compile(E,Vs) :- syntax(e,E),resetid,e(E,_),findall(V,retract(v(V)),Vs).
 :- end(compile).
 :- begin(emit,[emit/2]).
   t(rl(T,_),T).
@@ -42,7 +42,7 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
   asm(S)              :- fp(FP),writeln(FP,S).
   asm(S,F)            :- fp(FP),maplist(call,F,F_),format(FP,S,F_),nl(FP).
   out(vbin(Id,Op,A,B)) :- asm('\t~w = ~w ~w ~w,~w',[p(Id),p(Op),pt(A),p(A),p(B)]).
-  out(vprint(A)) :- asm('\tcall void @print_l(~w ~w) nounwind ssp',[pt(A),p(A)]).
+  out(vprint(A)) :- asm('\tcall void @print_l(~w ~w)',[pt(A),p(A)]).
   entry :-  asm('define i32 @main() {'),
             asm('entry:').
   leave :-  asm('\tret i32 0'),
@@ -64,9 +64,9 @@ term_expansion(P,:-true) :- begin(_,_),assert(data(P)).
                     (close(FP),retract(fp(_)))).
 :- end(emit).
 :-compile(eblock([
-    eprint(eint(1)),
-    eprint(eadd(eint(2),eint(3))),
-    eprint(emul(eadd(eint(2),eint(3)),eint(2)))
+    eprint(eint(ti(64),1)),
+    eprint(eadd(eint(ti(64),2),eint(ti(64),3))),
+    eprint(emul(eadd(eint(ti(64),2),eint(ti(64),3)),eint(ti(64),2)))
   ]),Codes),
   format('# l=~w\n',[Codes]),
   syntax(v*,Codes),
